@@ -1,0 +1,13 @@
+
+<div ng-show="productSummary.visible" class="product-dialog">
+  <div class="modal-header">
+    <h3 ng-bind-html="producttitle"></h3>
+    <span class="modal-header__close-modal" ng-click="productSummary.close()"></span>
+  </div>
+  <div class="modal-content">
+    <div class="modal-content__modal-row-container">
+      <div ng-bind-html="productsummarycontent"></div>
+    </div>
+  </div>
+  <div class="modal-footer"></div>
+</div>

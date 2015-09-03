@@ -1,0 +1,63 @@
+<div class="block-refine-search block">
+	<h3 class="block-refine-search__heading" ng-bind="assetCtrl.labels.FilterBy"></h3>
+  <div class="filter__selection-container">
+    <ul class="block-refine-search__filters " >
+      <li ng-repeat="filter in assetCtrl.filterList | orderBy: 'FieldType'">
+        <div class="filter-spacing" ng-include="'filterFieldType'+ filter.FieldType"></div>
+      </li>
+    </ul>
+  </div>
+  <div ng-if="assetCtrl.filterList.length > 0" class="filter__button-container">
+  	<button class="secondary filter-button-spacing" ng-click="assetCtrl.applySelectedFilters()"><span ng-bind="assetCtrl.labels.Apply"></span></button>
+  	<button class="tertiary filter-button-spacing" ng-click="assetCtrl.clearSelectedFilters()"><span ng-bind="assetCtrl.labels.ClearAll"></span></button>
+    <!-- <button class="tertiary filter-button-spacing" ng-click="assetCtrl.toggleLoading()"><span>Show Loading</span></button> -->
+  </div>
+</div>
+<!-- STRING type Search-Filter -->
+<script type="text/ng-template" id="filterFieldTypeSTRING">
+  <div>
+    <label class="filter-text-label" for="{{filter.FieldName}}_{{$index}}">{{filter.Label}}</label>
+    <input type="text" class="filter-text-input" id="{{filter.FieldName}}_{{$index}}" ng-model="filter.stringValue"/>
+  </div>
+</script>
+<!-- DATE type Search-Filter -->
+<script type="text/ng-template" id="filterFieldTypeDATE">
+	<div ng-if="filter.FieldName == (assetCtrl.nsPrefix + 'EndDate__c')">
+		<label class="filter-text-label" for="{{assetCtrl.endDateField.ElementId}}">{{filter.Label}}</label>
+		<dynamic-field class="filter-text-input" model="filter.dateValue" properties="assetCtrl.endDateField"></dynamic-field>
+	</div>
+	<div ng-if="filter.FieldName == (assetCtrl.nsPrefix + 'StartDate__c')">
+    <label class="filter-text-label" for="{{assetCtrl.startDateField.ElementId}}">{{filter.Label}}</label>
+    <dynamic-field class="filter-text-input" model="filter.dateValue" properties="assetCtrl.startDateField"></dynamic-field>
+	</div>
+</script>
+<!-- Picklists type Search-Filer -->
+<script type="text/ng-template" id="filterFieldTypePICKLIST">
+	<h4 class="block-refine-search__filter-label">{{filter.Label}}</h4>
+  <ul>
+    <li ng-repeat="filterValue in filter.pickListEntries">
+      <div class="checkbox-override">
+        <input type="checkbox" name="{{filterValue.label}}" id="{{filter.FieldName}}_{{$index + 1}}" ng-model="filterValue.selected"/>
+        <label for="{{filter.FieldName}}_{{$index + 1}}"></label>
+      </div>
+      <label for="{{filter.FieldName}}_{{$index + 1}}">{{filterValue.label}}</label>
+    </li>
+  </ul>
+</script>
+<!-- Picklists that are within referece type fields -->
+  <!-- Not all reference type filters may have an array of referencedObjects;
+    So check if defined -->
+<script type="text/ng-template" id="filterFieldTypeREFERENCE">
+  <div ng-if="filter.referenceObjects">
+    <h4 class="block-refine-search__filter-label">{{filter.Label}}</h4>
+    <ul>
+      <li ng-repeat="filterValue in filter.referenceObjects">
+        <div class="checkbox-override">
+          <input type="checkbox" name="{{filterValue.label}}" id="{{filter.FieldName}}_{{$index + 1}}" ng-model="filterValue.selected"/>
+          <label for="{{filter.FieldName}}_{{$index + 1}}"></label>
+        </div>
+        <label for="{{filter.FieldName}}_{{$index + 1}}">{{filterValue.Name}}</label>
+      </li>
+    </ul>
+  </div>
+</script>

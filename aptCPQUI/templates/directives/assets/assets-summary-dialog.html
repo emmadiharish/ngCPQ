@@ -1,0 +1,14 @@
+<div ng-show="assetSummaryCtrl.visible" class="product-dialog">
+	<div class="modal-content">
+		<div class="asset-summary__header">
+			<span ng-bind="assetSummaryCtrl.currentAsset.Name"></span>
+		</div>
+		<div class="asset-summary__content">
+			<span ng-bind="assetSummaryCtrl.currentAsset.Description"></span>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<div class="button-row">
+			<button ng-click="assetSummaryCtrl.close()" class="secondary"><span ng-bind="assetSummaryCtrl.labels.Close"></span></button>
+	</div>
+</div>

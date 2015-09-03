@@ -1,0 +1,40 @@
+
+<div class="main-configure-product__product-option-row-container"
+		 ng-class="{'product-option__error': picklistCtrl.selected.hasError()}">
+	<div class="main-configure-product__product-option-row main-configure-product__product-option-row--select">
+		<div class="main-configure-product__product-option-container">
+			<div class="main-configure-product__product-option-select"
+					 id="{{picklistCtrl.selected.componentId()}}">
+				<div class="select-override">
+					<select ng-change="picklistCtrl.selectOption(picklistCtrl.selected)" 
+									ng-model="picklistCtrl.selected"
+									ng-options="option.name() for option in picklistCtrl.group.options"></select>
+				</div>
+			</div>
+			<div class="form-element-container">
+				<span>{{picklistCtrl.extraColumn(1)}}</span>
+			</div>
+			<div class="form-element-container">
+				<span>{{picklistCtrl.extraColumn(2)}}</span>
+			</div>
+			<div class="form-element-container">
+				<dynamic-field model="picklistCtrl.selected.optionLine.data.chargeLines[0].lineItemSO[picklistCtrl.quantityField]"
+											 properties="{'FieldType': 'QUANTITY', 'IsEditable': picklistCtrl.selected.isEditable()}"
+											 class="product-option__quantity">
+				</dynamic-field>
+			</div>
+			<div class="product-option__price">
+				<span>{{picklistCtrl.price() | aptNumberToCurrency}}</span>
+			</div>
+			<div class="form-element-container product-option__price"
+					 ng-class="{'is--open': picklistCtrl.showAllPrices}">
+				<span ng-repeat="price in picklistCtrl.selected.getPrices() | limitTo:(picklistCtrl.showAllPrices ? picklistCtrl.selected.prices.length : 1)">
+					<i ng-if="$first && picklistCtrl.selected.prices.length > 1" 
+						 ng-click="picklistCtrl.showAllPrices = !picklistCtrl.showAllPrices"
+						 class="is--expandable"></i>
+					{{price | aptNumberToCurrency}}
+				</span>
+			</div>
+		</div>
+	</div>
+</div>

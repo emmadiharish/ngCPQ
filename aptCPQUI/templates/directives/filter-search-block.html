@@ -1,0 +1,47 @@
+
+<div class="filter-search-block block">
+  <h3 class="filter-search-block__title">Filter Results</h3>
+  <h4>
+    <a ui-sref="search({term: '{{searchedTerm.term}}', category: ''})" 
+       ng-if="searchedTerm.viewAll" 
+       class="filter-search-block__view-all">
+      <i class="ss-binoculars"></i>{{searchedTerm.labels.ViewAll}}
+    </a>
+  </h4>
+  <div class="filter-search-block__groups">
+    <ul ng-repeat="catGroup in searchedTerm.categories" class="filter-search-block__results">
+      <!--Top level-->
+      <li ng-class="{ 'is--open' : searchedTerm.isExpanded(catGroup.nodeId) }"
+          ng-if="searchedTerm.isSearchResult(catGroup.nodeId)">
+        <a ui-sref="search({term: '{{searchedTerm.term}}', category: '{{catGroup.nodeId}}' })">
+          <span ng-if="searchedTerm.checkChildrenForResults(catGroup)">
+            <i class="ss-directright"></i><i class="ss-dropdown"></i>
+          </span>
+          {{catGroup.label}}
+        </a>
+        <ul class="submenu">
+          <li ng-class="{ 'is--open' : searchedTerm.isExpanded(catChild.nodeId) }"
+              ng-repeat="catChild in catGroup.childCategories"
+              ng-include="'subTreeFilter'"
+              ng-if="searchedTerm.isSearchResult(catChild.nodeId)">
+          </li>
+        </ul>
+      </li>
+      <script type="text/ng-template" id="subTreeFilter">
+        <a ui-sref="search({term: '{{searchedTerm.term}}', category: '{{catChild.nodeId}}' })">
+          <span ng-if="searchedTerm.checkChildrenForResults(catChild)">
+            <i class="ss-directright"></i><i class="ss-dropdown"></i>
+          </span>
+          {{catChild.label}}
+        </a>
+        <ul ng-if="catChild.childCategories" class="submenu">
+          <li ng-class="{ 'is--open' : searchedTerm.isExpanded(catChild.nodeId) }"
+              ng-repeat="catChild in catChild.childCategories"
+              ng-include="'subTreeFilter'" 
+              ng-if="searchedTerm.isSearchResult(catChild.nodeId)">
+          </li>
+        </ul>
+      </script>
+    </ul>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+<div class="main-product-catalog block main-block">
+	<div fixed-header="fixed-header" parent=".main-product-catalog"
+		class="catalog-header">
+		<h1>{{catalog.labels.ProductCatalog}}</h1>
+		<div class="main-product-catalog__help main-block__help">
+			<a href="#"><i class="ss-lightbulbon"></i>{{catalog.labels.HelpMeChoose}}</a>
+		</div>
+	</div>
+	<div class="main-product-catalog__product-blocks clearfix">
+		<div ng-repeat="category in catalog.categories"
+			class="main-product-catalog__product-block">
+			<a ui-sref="category({ catID: {{'category.nodeId'}} })">
+				<img ng-src="{{catalog.baseFileUrl}}{{category.largeIconId}}" /></a>
+			<h3>
+				<a ui-sref="category({ catID: {{'category.nodeId'}} })">{{category.label }}</a>
+			</h3>
+			<script type="text/ng-template" id="categoryTree">
+				<a ui-sref="category({ catID: {{ 'category.nodeId' }} })">{{ category.label }}</a>
+				<ul ng-if="category.childCategories &amp;&amp; category.nodeLevel &lt; 1">
+					<li ng-repeat="category in category.childCategories" ng-include="'categoryTree'"></li>
+				</ul>
+      		</script>
+			<ul>
+				<li ng-repeat="category in category.childCategories" ng-include="'categoryTree'"></li>
+			</ul>
+		</div>
+	</div>
+	<hr />
+</div>

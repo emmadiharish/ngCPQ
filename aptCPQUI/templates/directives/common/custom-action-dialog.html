@@ -1,0 +1,10 @@
+<div ng-show="customAction.visible()" class="modal-overlay"></div>
+<div ng-show="customAction.visible()" class="custom-action-dialog">
+	<div class="modal-header">
+		<span class="modal-header__close-modal" ng-click="customAction.close()"></span>
+	</div>
+	<div class="modal-content">
+		<iframe src="{{customAction.pageUrl}}" height="100%" width="100%"
+			min-height="500px;"></iframe>
+	</div>
+</div>

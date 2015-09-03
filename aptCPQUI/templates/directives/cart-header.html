@@ -1,0 +1,34 @@
+
+<div class="cart-header">
+  <div class="cart-header__cart-title">
+    <h1><span class="ss-icon ss-cart"></span>{{cartHeader.labels.CartViewPageTitle}}</h1>
+  </div>
+  <div class="cart-header__product-batch-actions">
+    <div class="checkbox-override">
+      <input type="checkbox"
+             id="checkbox-all"
+             ng-checked="cartHeader.isSelected()"
+             ng-click="cartHeader.checkAll()"/>
+      <label for="checkbox-all"></label>
+    </div>
+    <div class="button-row" ng-show="cartHeader.anySelected">
+      <!--button.tertiary(ng-click="cartHeader.editConfig()")span Edit Product Configuration
+      -->
+      <!--button.tertiary(ng-click="cartHeader.priceAdjust()")span Price Adjustment
+      -->
+      <span class="selected-num">{{cartHeader.selectedProductsCount}} {{cartHeader.labels.Selected}}</span>
+
+      <button ng-click="cartHeader.copyCheckedItems()" 
+              class="tertiary">
+        <span>{{cartHeader.labels.Copy}}</span>
+      </button>
+      <button ng-click="cartHeader.removeCheckedItems()" 
+              class="tertiary">
+        <span>{{cartHeader.labels.RemoveFromCart}}</span>
+      </button>
+    </div>
+    <div class="pagination-group">
+      <dir-pagination-controls on-page-change="cartHeader.pageChanged(newPageNumber)"></dir-pagination-controls>
+    </div>
+  </div>
+</div>

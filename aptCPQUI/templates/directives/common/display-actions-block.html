@@ -1,0 +1,10 @@
+<custom-action-dialog></custom-action-dialog>
+<div ng-show="displayAction.actions.length"
+	class="display-actions-block-{{displayAction.position}} {{displayAction.align}}">
+	<button ng-repeat="action in displayAction.actions"
+		ng-click="displayAction.doAction(action)"
+		ng-disabled="{{!action.IsEnabled}}"
+		class="button {{action.ActionName}} active-{{action.IsEnabled}}">
+		<span>{{displayAction.actionLabel(action.ActionLabelName)}}</span>
+	</button>
+</div>

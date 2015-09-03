@@ -1,0 +1,9 @@
+
+<ul class="main-configure-product__product-nav">
+	<li ng-if="nav.config.lineItem.hasAttrs()"
+		ng-class="{'main-configure-product__product-nav--active': nav.view === 'attributes'}"
+		ng-click="nav.changeView('attributes')">{{nav.labels.ProductAttributesTab}}</li>
+	<li ng-if="nav.config.lineItem.hasOptions()"
+		ng-class="{'main-configure-product__product-nav--active': nav.view === 'options'}"
+		ng-click="nav.changeView('options')">{{nav.labels.ProductOptionsTab}}</li>
+</ul>

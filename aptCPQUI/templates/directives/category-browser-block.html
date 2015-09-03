@@ -1,0 +1,36 @@
+<div ng-show="catGroup.state == 'category'"
+	class="block-refine-subcategories block">
+	<a href="{{catGroup.parentSref}}"
+		class="block-refine-subcategories__parent"><i class="ss-directleft"></i>{{catGroup.parentCategoryLabel}}</a>
+</div>
+<div class="block-refine-subcategories__children">
+	<ul ng-if="catGroup.browseTree.childCategories">
+		<li categories-group-item="categories-group-item"
+			ng-repeat="subcat in catGroup.browseTree.childCategories"
+			ng-class="{ 'is--active' : subcat.nodeId == catGroup.currentCategory.nodeId, 'is--expandable' : subcat.childCategories }">
+			<a ui-sref="category({ catID: '{{ subcat.nodeId }}' })"
+				ng-class="{ 'has--children' : subcat.childCategories.length &gt; 0}">
+				<i ng-if="subcat.childCategories.length &gt; 0"
+					ng-hide="subcat.nodeId == catGroup.currentCategory.nodeId"
+					class="ss-directright"></i>
+				<i ng-if="subcat.childCategories.length &gt; 0"
+					ng-show="subcat.nodeId == catGroup.currentCategory.nodeId"
+					class="ss-dropdown"></i>
+				<i ng-if="subcat.childCategories.length &lt; 1" 
+					class="ss-alignspace"></i>	
+				{{subcat.label}}<span class="amount">{{productCountLookup[subcat.nodeId].total}}</span>
+			</a>
+			<!--all of current categories children here-->
+			<ul ng-if="subcat.childCategories.length &gt; 0" class="submenu">
+				<li ng-repeat="subChild in subcat.childCategories"
+					ng-class="{'is--expandable' : subChild.childCategories}">
+					<a ui-sref="category({ catID: '{{ subChild.nodeId }}' })">
+						<i class="ss-alignspace"></i>
+						<i ng-if="subChild.childCategories.length &gt; 0" class="ss-directright"></i>
+						{{subChild.label}}<span class="amount">{{productCountLookup[subChild.nodeId].total}}</span>
+					</a>
+				</li>
+			</ul>
+		</li>
+	</ul>
+</div>

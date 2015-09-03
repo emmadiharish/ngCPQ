@@ -1,0 +1,56 @@
+
+<div class="main-product-block block main-block">
+  <div fixed-header="fixed-header" parent=".main-product-block" class="catalog-header">
+    
+    <!-- Browse Category Header -->
+    <div class="main-product-listings__header" ng-hide="productList.isSearchResult()">
+      <h1>{{productList.labels.ProductCatalog}} {{title}}</h1><span breadcrumb-trail="breadcrumb-trail"></span>
+      <div class="main-product-listing__help main-block__help">
+        <a href="#"><i class="ss-lightbulbon"></i>{{productList.labels.HelpMeChoose}}</a>
+      </div>
+    </div>
+    
+    <!-- Search Result Header -->
+    <!-- Category Browse and Search Merge Change -->
+    <div class="main-product-listings__header ng-hide" ng-show="productList.isSearchResult()">
+      <h1>{{productList.labels.Search}} {{productList.labels.Results}} </h1>
+      <div class="main-product-listing__browse-catalog">
+        <a ui-sref="catalog" class="main-block__listing-trail__item" href="#/catalog">{{productList.labels.BrowseCatalogLink}}</a>
+      </div>
+    </div>
+
+    <div class="search-header__product-actions" ng-show="productList.searchResultLoaded">
+      <div class="checkbox-override">
+        <input id="checkbox-all"
+               type="checkbox" 
+               ng-checked="productList.allSelected()"
+               ng-click="productList.selectAll()"/>
+        <label for="checkbox-all"></label>
+      </div>
+      <div class="button-row" ng-show="productList.isProductSelected()">
+        <span class="selected-num">{{productList.selectedProductsCount}} {{productList.labels.Selected}}</span>
+        <button id="addToCart" ng-click="productList.addSelectedToCart()" class="tertiary">
+          <span>{{productList.labels.AddToCart}}</span>
+        </button>
+        <button ng-click="productList.compareSelected()" class="tertiary">
+          <span>{{productList.labels.SelectToCompare}}</span>
+        </button>
+      </div>
+      <div class="pagination-group pagination-group--top">
+        <dir-pagination-controls on-page-change="productList.pageChanged(newPageNumber)"></dir-pagination-controls>
+      </div>
+    </div>
+  </div>
+  <div class="main-product-listings" ng-show="productList.searchResultLoaded">
+    <div dir-paginate="product in productList.getProductsList() | itemsPerPage: productList.itemsPerPage" class="main-block__listings">
+      <ul>
+        <li>
+          <catalog-product product="product" action-attr="productList.getProductSOs(product)"></catalog-product>
+        </li>
+      </ul>
+    </div>
+    <div class="pagination-group pagination-group--bottom">
+      <dir-pagination-controls on-page-change="productList.pageChanged(newPageNumber)"></dir-pagination-controls>
+    </div>
+  </div>
+</div>

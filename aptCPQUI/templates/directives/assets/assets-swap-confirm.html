@@ -1,0 +1,56 @@
+<div class="main-cart-wrapper main-cart-wrapper--overflow">
+  <div class="loading" ng-show="swapConfirmCtrl.loading">Loading&#8230;</div>
+  <div class="cart-header">
+    <div class="cart-header__cart-title">
+      <h1>{{swapConfirmCtrl.labels.Confirm}}&nbsp;{{swapConfirmCtrl.labels.InstalledProducts}}&nbsp;{{swapConfirmCtrl.labels.Swap}}</h1>
+    </div>
+  </div>
+  <div class="main-asset-container--positioning">
+    <div class="main-asset-container-header">
+      <!-- <div class="loading-local" ng-show="true">Loading&#8230;</div> -->
+      <label class="asset-actions-text-label" for="{{swapConfirmCtrl.effectiveDateField.ElementId}}">{{swapConfirmCtrl.labels.EffectiveDate}}</label>
+      <dynamic-field class="asset-action__effective-date" model="swapConfirmCtrl.effectiveDate" properties="swapConfirmCtrl.effectiveDateField"></dynamic-field>
+      <button class="primary asset-action-button-spacing"
+              ng-click="swapConfirmCtrl.calculateSwapMetrics()" />
+        <span ng-bind="swapConfirmCtrl.labels.Calculate"></span>
+      </button>
+    </div>
+    <!-- <div class="main-asset-container-header">
+      <div class="loading-local" ng-show="true">Loading&#8230;</div>
+      <label class="asset-actions-text-label">Swap Details View</label>
+    </div> -->
+    <div class="main-asset-container">
+      <table class="asset-swap-confirm__info-table asset-swap-confirm__table-nodes">
+        <thead class="asset-section-table-header">
+          <th>{{swapConfirmCtrl.labels.ProductDescription}}</th>
+          <th>{{swapConfirmCtrl.labels.OriginalBundle}}</th>
+          <th>{{swapConfirmCtrl.labels.NewBundle}}</th>
+          <th>{{swapConfirmCtrl.labels.Difference}}</th>
+          <th></th>
+        </thead>
+        <tbody>
+          <!-- <tr ng-repeat="item in swapConfirmCtrl.descList"> -->
+          <tr ng-repeat="item in swapConfirmCtrl.descList" ng-if="item.display">
+            <td>{{item.label}}</td>
+            <td><span>{{item.currentVal}}</span></td>
+            <td><span>{{item.newVal}}</span></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- confirm and cancel buttons -->
+    <div class="main-asset-container-footer">
+      <button class="secondary asset-action-button-spacing" ng-click="swapConfirmCtrl.handleConfirmOperation()">
+        <span>{{swapConfirmCtrl.labels.Confirm}}</span>
+      </button>
+      <button class="tertiary asset-action-button-spacing" ng-click="swapConfirmCtrl.handleBackToSelection()">
+        <span>{{swapConfirmCtrl.labels.BackToSelection}}</span>
+      </button>
+      <button class="tertiary asset-action-button-spacing" ng-click="swapConfirmCtrl.handleCancelOperation()">
+        <span>{{swapConfirmCtrl.labels.Cancel}}</span>
+      </button>
+    </div>
+  </div>
+</div>

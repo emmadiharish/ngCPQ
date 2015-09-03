@@ -1,0 +1,40 @@
+
+<div class="main-configure-product__product-option-container"  
+		 ng-class="{'product-option__error': radioCtrl.option.hasError()}">
+	<div class="form-element-container product-option__name"
+			 id="{{radioCtrl.option.componentId()}}">
+		<div class="radio-override">
+			<input type="radio" 
+						 ng-click="radioCtrl.toggleOption()" 
+						 ng-checked="radioCtrl.option.isSelected()"
+						 id="{{radioCtrl.option.componentId() + radioCtrl.level}}"
+						 name="{{radioCtrl.option.group.groupId() + radioCtrl.level}}"
+						 class="radio-type"/>
+			<label for="{{radioCtrl.option.componentId() + radioCtrl.level}}"></label>
+		</div>
+		<label ng-click="radioCtrl.openProductSummary(radioCtrl.option.optionLine.productID())">
+			{{radioCtrl.option.name()}}
+		</label>
+	</div>
+	<div class="form-element-container product-option__code">
+		<span>{{radioCtrl.extraColumn(1)}}</span>
+	</div>
+	<div class="form-element-container product-option__family">
+		<span>{{radioCtrl.extraColumn(2)}}</span>
+	</div>
+	<div class="form-element-container product-option__quantity">
+		<dynamic-field model="radioCtrl.option.optionLine.data.chargeLines[0].lineItemSO[radioCtrl.quantityField]"
+									 properties="{'FieldType': 'QUANTITY', 'IsEditable': radioCtrl.option.isEditable()}"
+									 class="product-option__quantity">
+		</dynamic-field>
+	</div>
+	<div class="form-element-container product-option__price"
+			 ng-class="{'is--open': radioCtrl.showAllPrices}">
+		<span ng-repeat="price in radioCtrl.option.getPrices() | limitTo:(radioCtrl.showAllPrices ? radioCtrl.option.prices.length : 1)">
+			<i ng-if="$first && radioCtrl.option.prices.length > 1" 
+				 ng-click="radioCtrl.showAllPrices = !radioCtrl.showAllPrices"
+				 class="is--expandable"></i>
+			{{price | aptNumberToCurrency}}
+		</span>
+	</div>
+</div>

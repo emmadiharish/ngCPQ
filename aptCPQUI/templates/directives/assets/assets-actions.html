@@ -1,0 +1,8 @@
+<button
+	class="tertiary action-button-spacing"
+	ng-repeat="action in actionCtrl.assetActions"
+	ng-disabled="actionCtrl.disableActionsObj[action.label]"
+	ng-click="actionCtrl.handleButtonClick(action.label)"
+	ng-if="action.display">
+	<span ng-bind="action.label"></span>
+</button>

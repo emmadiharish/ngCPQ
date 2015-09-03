@@ -1,0 +1,11 @@
+
+<div class="main-configure-product block main-block">
+  <div main-configure-product="main-configure-product">
+    <h2>{{config.lineItem.productName()}}</h2>
+    <configure-product-header></configure-product-header>
+    <configure-product-nav view="config.view"></configure-product-nav>
+    <!-- <configure-product-attributes ng-if="config.view == 'attributes'" line-item="config.lineItem"></configure-product-attributes> -->
+    <option-attribute-config ng-if="config.view == 'attributes'" line-item="config.lineItem"></option-attribute-config>
+    <configure-product-options ng-if="config.view == 'options'"></configure-product-options>
+  </div>
+</div>

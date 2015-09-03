@@ -1,0 +1,9 @@
+<div ng-show="pageErrors.hasPageErrorMessages()">
+	<div ng-show="pageErrors.hasPageErrors()" class="error error--critical">
+		<ul class="error__error-list">
+			<li ng-repeat="error in pageErrors.pageErrors()">
+				<p>{{error}}</p>
+			</li>
+		</ul>
+	</div>
+</div>

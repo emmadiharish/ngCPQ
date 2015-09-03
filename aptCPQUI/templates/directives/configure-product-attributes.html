@@ -1,0 +1,40 @@
+
+<div ng-repeat="group in config.configure.lineItem.attrGroups" class="main-configure-product__product-attribute">
+  <h3>{{group.Name}}</h3>
+  <div ng-repeat="attr in group.Attributes__r" 
+       ng-class="{'two-column': {{group.TwoColumnAttributeDisplay__c}}}" 
+       class="form-element-container">
+    <label ng-show="config.isVisible(attr.Field__c)">
+      {{config.attributeLabel(attr.Field__c)}}
+    </label>
+    <div ng-if="config.isPicklist(attr.Field__c)" 
+         class="select-override" 
+         ng-show="config.isVisible(attr.Field__c)">
+      <select ng-model="config.attrSO()[attr.Field__c]"
+              ng-options="value.value as value.label for value in config.valuesForAttr(attr.Field__c)"
+              ng-show="config.isVisible(attr.Field__c)" ngRequired="config.isRequired(attr.Field__c)"
+              ng-disabled="config.isReadOnly(attr.Field__c)">
+      </select>
+    </div>
+    <input ng-if="config.isTextArea(attr.Field__c)"
+           ng-model="config.attrSO()[attr.Field__c]" 
+           type="text"  
+           ng-show="config.isVisible(attr.Field__c)" 
+           ngRequired="config.isRequired(attr.Field__c)" 
+           ng-disabled="config.isReadOnly(attr.Field__c)"/>
+    <div ng-if="config.isMultiPickList(attr.Field__c)"
+         ng-repeat="value in config.valuesForAttr(attr.Field__c)"
+         class="multipick-item"
+         ng-show="config.isVisible(attr.Field__c)"
+         ng-disabled="config.isReadOnly(attr.Field__c)">
+      <div class="checkbox-override">
+        <input ng-model="config.attrSO()[attr.Field__c]"
+               type="checkbox"
+               id="checkbox-{{$index}}"/>
+        <label for="checkbox-{{$index}}"></label>
+      </div>
+      <label for="checkbox-{{$index}}">{{value.label}}</label>
+    </div>
+  </div>
+</div>
+

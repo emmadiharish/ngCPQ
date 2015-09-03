@@ -1,0 +1,11 @@
+<!-- Field Type: Date -->
+<!--Pickaday logic-->
+<p pikaday="dynamicField.tempDate"
+	 on-select="dynamicField.getSetModel(date)">
+	<input type="text"
+				 ng-model="dynamicField.getSetModel"
+				 ng-model-options="dynamicField.modelOptions"
+				 class="{{dynamicField.properties.StyleClass}}" 
+				 style="{{dynamicField.properties.Style}}"
+				 id="{{dynamicField.properties.ElementId}}" />
+</p>

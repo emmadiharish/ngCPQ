@@ -1,0 +1,26 @@
+
+<div ng-if="headerCtrl.hasIcon || headerCtrl.productDescription" 
+     class="main-configure-product__product-information">
+  <img ng-if="headerCtrl.hasIcon" ng-src="{{headerCtrl.img_url}}"/>
+  <p>{{headerCtrl.productDescription}}</p>
+</div>
+<div class="main-configure-product__product-header-col">
+  <div class="main-configure-product__product-config">
+    <div class="main-configure-product__quantity">
+      <label>{{headerCtrl.labels.OptionQuantity}}</label>
+      <dynamic-field model="headerCtrl.lineItem[headerCtrl.quantityField]"
+                     properties="{'FieldType': 'QUANTITY', IsEditable: true}">
+      </dynamic-field>
+    </div>
+    <div class="main-configure-product__term">
+      <label>{{headerCtrl.labels.Term}}</label>
+      <dynamic-field model="headerCtrl.lineItem[headerCtrl.termField]"
+                     properties="{'FieldType': 'DOUBLE', IsEditable: true}">
+      </dynamic-field>
+    </div>
+  </div>
+  <div class="main-configure-product__frequency">
+    <label>{{headerCtrl.labels.Frequency}}</label>
+    <span>{{headerCtrl.lineItem[headerCtrl.frequencyField]}}</span>
+  </div>
+</div>

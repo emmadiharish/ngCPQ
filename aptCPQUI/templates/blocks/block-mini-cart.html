@@ -1,0 +1,39 @@
+
+<mini-cart class="mini-cart block {{miniCart.cartTotal}}"><span class="mini-cart__display"><i class="ss-emptycart"></i><span class="mini-cart__display__label">{{miniCart.labels.Cart}}</span><span class="mini-cart__display__total">({{miniCart.cart.length}})</span></span>
+  <div class="mini-cart__container">
+    <ul class="mini-cart__items">
+      <li dir-paginate="lineItem in miniCart.cart | itemsPerPage:5" pagination-id="miniCartPagi" max-size="5" class="mini-cart__items__item">
+        <div class="column-description column">
+          <h3 class="mini-cart__items__item__title">
+            <span>{{miniCart.getProductName(lineItem)}}</span>
+            <i ng-if="miniCart.getIsItemConfigurable(lineItem)"
+                ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})"
+                class="mini-cart__items__item__title--configurable ss-wrench"></i>
+          </h3>
+          <h4 class="mini-cart__items__item__subtitle">{{miniCart.getProductSubtitle(lineItem)}}</h4>
+        </div>
+        <div class="column-price column">
+          <h4 class="mini-cart__items__item__price">{{miniCart.getLineItemPrice(lineItem) | aptNumberToCurrency}}<i class="ss-dropdown"></i></h4>
+        </div>
+        <div class="column-three column">
+          <button ng-click="miniCart.removeFromCart(lineItem)" class="mini-cart__items__item__trash"><i class="ss-trash"></i></button>
+        </div>
+      </li>
+    </ul>
+    <div class="pagination-group pagination-group--bottom">
+      <dir-pagination-controls pagination-id="miniCartPagi"></dir-pagination-controls>
+      <li class="mini-cart__items__item mini-cart__items__item--grand-total">
+        <div class="column-description column">
+          <h3 class="mini-cart__items__item__title">{{miniCart.labels.GrandTotal}}</h3>
+        </div>
+        <div class="column-price column">
+          <h4 class="mini-cart__items__item__price">{{miniCart.grandTotalNetPrice | aptNumberToCurrency}}</h4>
+        </div>
+      </li>
+    </div>
+    <div class="mini-cart__actions">
+      <button class="mini-cart__actions__view-cart secondary" ng-click="miniCart.gotoCart()">{{miniCart.labels.ViewCart}}</button>
+      <button class="mini-cart__actions__finalize" ng-click="miniCart.finalizeCart()">{{miniCart.labels.Finalize}}</button>
+    </div>
+  </div>
+</mini-cart>

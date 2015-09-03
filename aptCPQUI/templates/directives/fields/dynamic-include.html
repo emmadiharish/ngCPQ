@@ -1,0 +1,8 @@
+<div ng-if="dynamicField.isEditable" 
+		 ng-include="dynamicField.templateUrl">
+</div>
+<div ng-if="!dynamicField.isEditable"
+	 	 class="{{dynamicField.properties.StyleClass}}" 
+	 	 style="{{dynamicField.properties.Style}}">
+	{{dynamicField.getSetModel()}}
+</div>

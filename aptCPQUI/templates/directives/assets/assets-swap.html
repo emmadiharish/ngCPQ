@@ -1,0 +1,42 @@
+<!-- asset swapping -->
+<div class="main-cart-wrapper main-cart-wrapper--overflow">
+	<div class="loading" ng-show="swapAssetCtrl.loading">Loading&#8230;</div>
+	<div class="cart-header">
+		<div class="cart-header__cart-title">
+			<h1>{{swapAssetCtrl.labels.Swap}}&nbsp;{{swapAssetCtrl.labels.InstalledProducts}}&nbsp;-&nbsp;{{swapAssetCtrl.labels.AvailableProducts}}</h1>
+		</div>
+	</div>
+	<div class="main-asset-container--positioning">
+		<div class="main-asset-container-swap">
+			<!-- <span class="asset-state__content-text" style="padding-left: 1.0rem">Show Swap Choices Here</span> -->
+			<!-- <p class="asset-state__content-text" style="padding-left: 1.0rem">{{swapAssetCtrl.swapChoices.products.length}}&nbsp;Choices Found</p> -->
+			<table ng-repeat="selectedAsset in swapAssetCtrl.selectedLineItems" style="border-collapse: separate; border-spacing: 25px;">
+				<tr>
+					<!-- First column is always the existing asset -->
+					<td class="asset-swap__primary-col">
+						<div class="asset-swap__col-top"><span ng-bind="selectedAsset.assetLineItemSO[swapAssetCtrl.nsPrefix + 'ProductId__r'].Name"></span></div>
+						<div><span class="asset-swap__primary-hl" ng-bind="selectedAsset.assetLineItemSO[swapAssetCtrl.nsPrefix + 'NetPrice__c'] | currency"></span></div>
+						<div><span class="asset-swap__primary-hl" ng-bind="selectedAsset.assetLineItemSO[swapAssetCtrl.nsPrefix + 'AssetStatus__c']"></span></div>
+						<!-- <div><span>140+ Channels</span></div>
+						<div><span>250Mbps</span></div> -->
+						<div class="asset-swap__col-bottom"><span ng-bind="selectedAsset.assetLineItemSO.ProductId__r.Description"></span></div>
+					</td>
+					<!-- Available Swap Choices -->
+					<td class="asset-swap__primary-col" ng-repeat="product in swapAssetCtrl.swapChoices.products">
+						<div class="asset-swap__col-top"><span ng-bind="product.productSO.Name"></span></div>
+						<div style="background-color: #ECEEF0"><span ng-bind="product.chargeList[0][swapAssetCtrl.nsPrefix + 'ListPrice__c'] | currency"></span></div>
+						<div><button class="secondary" ng-click="swapAssetCtrl.handleSwapSelection(selectedAsset.assetLineItemSO.Id, product.productSO.Id)"><span style="color: #FFF">{{swapAssetCtrl.labels.Purchase}}</span></button></div>
+						<!-- <div><span>140+ Channels</span></div>
+						<div><span>250Mbps</span></div> -->
+						<div class="asset-swap__col-bottom"><span ng-bind="product.productSO.Description"></span></div>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div class="main-asset-container-footer">
+			<button class="tertiary asset-action-button-spacing" ng-click="swapAssetCtrl.handleCancelOperation()">
+	  		<span>{{swapAssetCtrl.labels.Cancel}}</span>
+	  	</button>
+		</div>
+	</div>
+</div>

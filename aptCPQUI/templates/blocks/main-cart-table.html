@@ -1,0 +1,188 @@
+<div main-cart="main-cart" class="main-cart-wrapper main-cart-wrapper--overflow">
+  <div class="loading" ng-show="mainCart.isServerActionInProgress()"></div>
+  <cart-header check-boxes="mainCart.checkBoxes"></cart-header>
+  <div class="main-cart-container--positioning">
+    <div class="main-cart-container">
+      <table>
+        <!--Column heading-->
+        <thead class="cart-label-row">
+          <th ng-repeat="column in mainCart.tableColumns" 
+              ng-class="{'is--editable' : column.IsEditable}" 
+              class="main-cart-col main-cart-col--header  main-cart-col--{{column.columnClassName}}">
+            <div>
+              <label style="{{column.HeaderStyle}}">{{column.Label}}</label>
+            </div>
+            <!-- May be able to remove this second label -->
+            <div cart-label-field="cart-label-field" class="fixed-label" ng-hide="$first">
+              <label>{{column.Label}}</label>
+            </div>
+          </th>
+        </thead>
+        <tbody ng-sortable="mainCart.sortableSettings">
+          <!--top level cart line items-->
+          <tr item="lineItem" 
+              dir-paginate="lineItem in mainCart.cartLineItems | itemsPerPage: 10" 
+              class="line-item-row">
+            <td ng-repeat="column in mainCart.tableColumns" 
+                ng-class="{'is--editable' : column.IsEditable}" 
+                class="main-cart-col main-cart-col--{{column.columnClassName}}">
+              <!--Top level column fields-->
+              <div class="fieldtype-wrapper fieldtype-wrapper--{{column.FieldType}}">
+                <!-- Only the first column gets a value rendered, the rest are empty divs -->
+                <div ng-if="column.FieldType === 'DETAIL'" 
+                      ng-include="'fieldTypeDETAIL'">
+                </div>
+              </div>
+              <!--Top level charge lines-->
+              <ul ng-if="lineItem.chargeLines.length &amp;&amp; column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
+                <!-- <li ng-repeat="chargeLine in lineItem.chargeLines | filter:mainCart.getIsPricingComplete" class="charge-line-col"> -->
+                <li ng-repeat="chargeLine in lineItem.chargeLines" class="charge-line-col">
+                  <div class="fieldtype-wrapper fieldtype-wrapper--{{column.FieldType}}">
+                    <div ng-if="!mainCart.isFieldHidden(chargeLine, column)">
+                      <dynamic-field model="chargeLine.lineItemSO[column.FieldName]" properties="{'FieldType': column.FieldType,
+                                                                                                'IsEditable': mainCart.isFieldEditable(chargeLine, column),
+                                                                                                'pickListEntries': column.pickListEntries}">
+                      </dynamic-field>
+                    </div>
+                    <!-- <div ng-include="'fieldType'+ column.FieldType"></div> -->
+                  </div>
+                </li>
+              </ul>
+              <!--Top level option lines-->
+              <ul ng-if="lineItem.optionLines.length &amp;&amp; column.FieldType !== 'DETAIL'" class=" submenu submenu--optionlines">
+                <li ng-repeat="optionLine in lineItem.optionLines | filter:{isSelected:'!false'}" class="option-line-col">
+                  <div class="fieldtype-wrapper">
+                    <!-- These cells left blank b/c charge lines contain all relevent information -->
+                    <!-- <dynamic-field model="optionLine.lineItemSO[column.FieldName]" properties="column"></dynamic-field> -->
+                  </div>
+                  <!--Secondary Level option and charge lines-->
+                  <ul ng-if="optionLine.chargeLines.length" class="charge-lines">
+                    <!-- <li ng-repeat="chargeLine in optionLine.chargeLines | filter:mainCart.getIsPricingComplete" class="charge-line-col"> -->
+                    <li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
+                      <div class="fieldtype-wrapper">
+                        <div ng-if="!mainCart.isFieldHidden(chargeLine, column)">
+                          <dynamic-field model="chargeLine.lineItemSO[column.FieldName]" properties="{'FieldType': column.FieldType,
+                                                                                                    'IsEditable': mainCart.isFieldEditable(chargeLine, column),
+                                                                                                    'pickListEntries': column.pickListEntries}">
+                          </dynamic-field>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                  <ul ng-if="optionLine.optionLines" class="submenu submenu--optionlines  option-{{mainCart.getOptionDomId(optionLine)}}">
+                    <li ng-repeat="optionLine in optionLine.optionLines | filter:{isSelected:'!false'}" ng-include="'subOptionLineCol'" class="option-line-col"></li>
+                  </ul>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<cart-totals check-boxes="mainCart.checkBoxes"></cart-totals>
+<!--mainCart.tableColumns-->
+<!--All sub options detail lines beyond level 1-->
+<script type="text/ng-template" id="subOptionLineDetail">
+  <div class="line-item-name">
+    <!-- Commented out b/c option chekboxes not naturally supported -->
+    <!-- 
+    <div class="checkbox-override">
+      <input type="checkbox" 
+             id="{{mainCart.getOptionDomId(optionLine)}}" 
+             ng-checked="mainCart.checkBoxes.all[mainCart.getOptionDomId(optionLine)].selected" 
+             ng-click="mainCart.enableActions(mainCart.getOptionDomId(optionLine))"/>
+      <label for="{{mainCart.getOptionDomId(optionLine)}}"></label>
+    </div>
+    -->
+    <i toggle-class="is--open" parent="option-line-col" ng-if="optionLine.optionLines.length" toggle-all-class="option-{{mainCart.getOptionDomId(optionLine)}}" toggle-all-class-with="is--visible" class="line-item--expandable"></i>
+    <h3>{{mainCart.getOptionName(optionLine)}}</h3>
+  </div>
+  <ul ng-if="optionLine.chargeLines.length" class="submenu submenu--chargelines chargelines">
+    <!-- <li ng-repeat="chargeLine in optionLine.chargeLines | filter:mainCart.getIsPricingComplete" class="charge-line-col"> -->
+    <li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
+      <div class="fieldtype-wrapper">
+        <div>
+          <p>{{mainCart.getOptionName(optionLine)}}</p>
+        </div>
+      </div>
+    </li>
+  </ul>
+  <ul ng-if="optionLine.optionLines.length" class="submenu submenu--optionlines">
+    <li ng-repeat="optionLine in optionLine.optionLines | filter:{isSelected:'!false'}" ng-include="'subOptionLineDetail'" class="option-line-col">
+      <p>{{mainCart.getOptionName(optionLine)}}</p>
+    </li>
+  </ul>
+</script>
+<!--All beneath top level. Not in left DETAIL column-->
+<script type="text/ng-template" id="subOptionLineCol">
+  <div class="fieldtype-wrapper">
+    <!-- These cells left blank b/c charge lines contain all relevent information -->
+    <!-- <dynamic-field model="lineItem.lineItemSO[column.FieldName]" properties="column"></dynamic-field> -->
+  </div>
+  <ul ng-if="optionLine.chargeLines.length" class="submenu submenu--chargelines chargelines chargelines-{{mainCart.getOptionDomId(optionLine)}}">
+    <!-- <li ng-repeat="chargeLine in optionLine.chargeLines | filter:mainCart.getIsPricingComplete" class="charge-line-col"> -->
+    <li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
+      <div class="fieldtype-wrapper">
+        <dynamic-field model="chargeLine.lineItemSO[column.FieldName]" properties="column"></dynamic-field>
+      </div>
+    </li>
+  </ul>
+  <ul ng-if="optionLine.optionLines" class="submenu submenu--optionlines option-{{mainCart.getOptionDomId(optionLine)}}">
+    <li ng-repeat="optionLine in optionLine.optionLines | filter:{isSelected:'!false'}" ng-include="'subOptionLineCol'" class="option-line-col"></li>
+  </ul>
+</script>
+<!--All detail beneath top level-->
+<script type="text/ng-template" id="fieldTypeDETAIL">
+  <div class="line-item-name">
+    <div class="line-item-row--draggable is--draggable"></div>
+    <div class="line-sequence">
+      <div>{{mainCart.getLineItemSequence(lineItem)}}</div>
+    </div>
+    <div class="checkbox-override">
+      <input type="checkbox" 
+             id="{{lineItem.txnPrimaryLineNumber}}" 
+             ng-model="mainCart.checkBoxes.all[lineItem.txnPrimaryLineNumber]"
+             class="{{lineItem.txnPrimaryLineNumber}}"/>
+      <label for="{{lineItem.txnPrimaryLineNumber}}"></label>
+    </div><i toggle-class="is--open" parent="line-item-row" ng-if="lineItem.optionLines.length" class="line-item--expandable"></i>
+    <h3><span class="line-item--name" ng-click="mainCart.openProductSummary(lineItem.lineItemSO[column.FieldName].Id);">{{lineItem.lineItemSO[column.FieldName].Name}}</span><i ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" ng-if="mainCart.getIsItemConfigurable(lineItem)" class="line-item--configurable ss-wrench"></i>
+    <i ng-click="mainCart.openRamp(lineItem)" ng-if="mainCart.getIsRampEnabled(lineItem)" class="line-item--configurable ss-upwardsbarchart"></i></h3>
+  </div>
+  <!--Output all charge top level lines-->
+  <ul ng-if="lineItem.chargeLines.length" class="chargelines">
+    <!-- <li ng-repeat="chargeLine in lineItem.chargeLines | filter:mainCart.getIsPricingComplete" class="charge-line-col"> -->
+    <li ng-repeat="chargeLine in lineItem.chargeLines" class="charge-line-col">
+      <p class="charge-label">{{chargeLine.lineItemSO[mainCart.chargeKey]}}</p>
+    </li>
+  </ul>
+  <!--Include all sub option lines of the bundle-->
+  <ul ng-if="lineItem.optionLines.length">
+    <li ng-repeat="optionLine in lineItem.optionLines | filter:{isSelected:'!false'}" class="option-line-col">
+      <div class="option-line-name">
+        <!-- Commented out b/c option chekboxes not naturally supported -->
+        <!-- 
+        <div class="checkbox-override">
+          <input type="checkbox" 
+                 id="{{mainCart.getOptionDomId(optionLine)}}" 
+                 ng-checked="mainCart.checkBoxes.all[mainCart.getOptionDomId(optionLine)].selected"
+                 ng-click="mainCart.enableActions(mainCart.getOptionDomId(optionLine))"/>
+          <label for="{{mainCart.getOptionDomId(optionLine)}}" class="txn-{{optionLine.txnPrimaryLineNumber}}"></label>
+        </div>
+        -->
+        <i toggle-class="is--open" parent="option-line-col" toggle-all-class="option-{{mainCart.getOptionDomId(optionLine)}}" toggle-all-class-with="is--visible" ng-if="optionLine.optionLines.length" class="line-item--expandable"></i>
+        <h4>{{mainCart.getOptionName(optionLine)}}</h4>
+      </div>
+      <ul ng-if="optionLine.chargeLines.length" class="submenu submenu--chargelines chargelines chargelines-{{mainCart.getOptionDomId(optionLine)}}">
+        <!-- <li ng-repeat="chargeLine in optionLine.chargeLines | filter:mainCart.getIsPricingComplete" class="charge-line-col"> -->
+        <li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
+          <p>{{chargeLine.lineItemSO[mainCart.chargeKey]}}</p>
+        </li>
+      </ul>
+      <ul ng-if="optionLine.optionLines.length" class="submenu submenu--optionlines option-{{mainCart.getOptionDomId(optionLine)}}">
+        <li ng-repeat="optionLine in optionLine.optionLines | filter:{isSelected:'!false'}" ng-include="'subOptionLineDetail'" class="option-line-col"></li>
+      </ul>
+    </li>
+  </ul>
+</script>

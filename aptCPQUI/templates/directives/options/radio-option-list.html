@@ -1,0 +1,27 @@
+
+<div class="main-configure-product__product-option-row-container">
+	<div ng-repeat="option in list.group.options" 
+			 class="main-configure-product__product-option-row">
+		<radio-option level="{{list.getLevel()}}" option="option"></radio-option>
+	</div>
+</div>
+<div ng-if="list.group.hasNoneOption()" 
+		 class="main-configure-product__product-option-row-container">
+	<div class="main-configure-product__product-option-row">
+		<div class="main-configure-product__product-option-container">
+			<div class="form-element-container product-option__name">
+				<div class="radio-override">
+					<input type="radio" 
+								 ng-click="list.selectNone()"
+								 ng-checked="list.group.hasNoneSelected()" 
+								 id="{{list.group.data.id + list.getLevel()}}-none"
+								 name="{{list.group.data.id + list.getLevel()}}"/>
+					<label for="{{list.group.data.id + list.getLevel()}}-none"></label>
+				</div>
+				<label for="{{list.group.data.id + list.getLevel()}}-none">
+					{{list.labels.None}}
+				</label>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,26 @@
+<div class="cart-header">
+	<div class="cart-header__cart-title">
+		<h1>
+		<span class="ss-icon ss-briefcase"></span>
+		{{headerCtrl.labels.InstalledProducts}}
+		</h1>
+	</div>
+</div>
+<div class="main-asset-header__asset-actions">
+  <div class="checkbox-override">
+    <input id="asset-checkbox-all"
+           type="checkbox" 
+           ng-model="mainAssetController.globalLineSelection"
+           ng-click="mainAssetController.handleGlobalPageSelect(mainAssetController.globalLineSelection)"/>
+    <label for="asset-checkbox-all"></label>
+  </div>
+  <div class="button-row" ng-show="!mainAssetController.disableActions">
+  	<asset-actions></asset-actions>
+  </div>
+  <div class="pagination-group pagination-group--top">
+    <dir-pagination-controls on-page-change="mainAssetController.pageChanged(newPageNumber)"></dir-pagination-controls>
+  </div>
+</div>
+<!-- <div ng-if="mainAssetController.assetLineItems.length > 10" class="cart-header__product-batch-actions pagination-group">
+	<dir-pagination-controls></dir-pagination-controls>
+</div> -->

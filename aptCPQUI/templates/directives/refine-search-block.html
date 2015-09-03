@@ -1,0 +1,18 @@
+
+<div class="block-refine-search block">
+  <h3 class="block-refine-search__heading">{{refineSearch.labels.RefineSearch}}</h3>
+  <ul class="block-refine-search__filters">
+    <li ng-repeat="filter in refineSearch.filters">
+      <h4 class="block-refine-search__filter-label">{{filter.fieldLabel}}</h4>
+      <ul>
+        <li ng-repeat="filterValue in filter.filterFieldValues">
+          <div class="checkbox-override">
+            <input type="checkbox" name="{{filter.fieldLabel}}" id="{{filter.fieldName}}_{{$index + 1}}" ng-model="filterValue.isSelected" ng-change="refineSearch.changeFilters(filter, filterValue.value)"/>
+            <label for="{{filter.fieldName}}_{{$index + 1}}"></label>
+          </div>
+          <label for="{{filter.fieldName}}_{{$index + 1}}">{{filterValue.label}}</label>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>

@@ -1,0 +1,9 @@
+
+<div ui-view="proposalSelector"></div>
+<div class="customer-name block"><span>{{header.customerName()}}</span></div>
+<div class="opp-name block"><span>{{header.opportunityName()}}</span></div>
+<div class="right-blocks">
+  <div ui-view="miniCart"></div>
+  <button class="help" ng-click="header.showHelp()"><i class="ss-help"></i></button>
+  <button class="exit" ng-click="header.abandonCart()"><i class="ss-action"></i></button>
+</div>

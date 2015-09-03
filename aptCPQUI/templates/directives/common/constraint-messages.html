@@ -1,0 +1,39 @@
+
+<div ng-show="messageCtrl.hasMessages()">
+	<div ng-show="messageCtrl.hasError()" class="error error--critical">
+		<ul class="error__error-list">
+			<li ng-repeat="error in messageCtrl.pageErrors()">
+				<p>{{error[messageCtrl.messageField]}}</p>
+			</li>
+		</ul>
+	</div>
+
+	<div ng-show="messageCtrl.hasWarning()" class="error error--warning">
+		<ul class="error__warning-list">
+			<li ng-repeat="warning in messageCtrl.pageWarnings()">
+				<p>{{warning[messageCtrl.messageField]}}</p>
+			</li>
+		</ul>
+	</div>
+
+	<div ng-show="messageCtrl.hasInfo()" class="error error--info">
+		<ul class="error__info-list">
+			<li ng-repeat="info in messageCtrl.pageInfos()">
+				<p>{{info[messageCtrl.messageField]}}</p>
+			</li>
+		</ul>
+	</div>
+
+	<div ng-show="messageCtrl.hasCommonErrors()" class="error error--critical">
+		<ul class="error__critical-list">
+			<li ng-repeat="commonError in messageCtrl.errorMessages">
+				<p>{{commonError.message}}
+					<span ng-repeat="lineInfo in commonError.lines">
+						{{lineInfo}}
+					</span>
+				</p>
+			</li>
+		</ul>
+	</div>
+
+</div>

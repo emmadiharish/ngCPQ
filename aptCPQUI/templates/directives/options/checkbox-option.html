@@ -1,0 +1,42 @@
+
+<div class="main-configure-product__product-option-container"
+		 ng-class="{'product-option__error': checkboxCtrl.option.hasError(),
+		 					  'option-disabled': checkboxCtrl.isOptionDisabled()}">
+	<div class="form-element-container product-option__name"
+			 id="{{checkboxCtrl.option.componentId()}}">
+		<div class="checkbox-override">
+			<input type="checkbox" 
+						 ng-click="checkboxCtrl.toggleOption()"
+						 ng-checked="checkboxCtrl.option.isSelected()" 
+						 id="{{checkboxCtrl.option.componentId() + checkboxCtrl.level}}" 
+						 name="{{checkboxCtrl.option.group.groupId() + checkboxCtrl.level}}"
+						 ng-disabled="checkboxCtrl.isOptionDisabled()"/>
+			<label for="{{checkboxCtrl.option.componentId() + checkboxCtrl.level}}"></label>
+		</div>
+		<label ng-click="checkboxCtrl.openProductSummary(checkboxCtrl.option.optionLine.productID());">
+			{{checkboxCtrl.option.name()}}
+		</label>
+	</div>
+	<div class="form-element-container product-option__code">
+		<span>{{checkboxCtrl.extraColumn(1)}}</span>
+	</div>
+	<div class="form-element-container product-option__family">
+		<span>{{checkboxCtrl.extraColumn(2)}}</span>
+	</div>
+	<div class="form-element-container product-option__quantity" >
+		<dynamic-field model="checkboxCtrl.option.optionLine.data.chargeLines[0].lineItemSO[checkboxCtrl.quantityField]"
+									 properties="{'FieldType': 'QUANTITY', 'IsEditable': checkboxCtrl.option.isEditable()}"
+									 class="product-option__quantity">
+		</dynamic-field>
+	</div>
+
+	<div class="form-element-container product-option__price"
+			 ng-class="{'is--open': checkboxCtrl.showAllPrices}">
+		<span ng-repeat="price in checkboxCtrl.option.getPrices() | limitTo:(checkboxCtrl.showAllPrices ? checkboxCtrl.option.prices.length : 1)">
+			<i ng-if="$first && checkboxCtrl.option.prices.length > 1" 
+				 ng-click="checkboxCtrl.showAllPrices = !checkboxCtrl.showAllPrices"
+				 class="is--expandable"></i>
+			{{price | aptNumberToCurrency}}
+		</span>
+	</div>
+</div>

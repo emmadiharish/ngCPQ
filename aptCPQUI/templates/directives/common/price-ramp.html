@@ -1,0 +1,72 @@
+
+<div ng-show="priceRamp.visible()" class="modal-overlay"></div>
+<div ng-show="priceRamp.visible()" class="ramp-dialog">
+  <div class="modal-header">
+    <h3>
+      {{priceRamp.labels.DefinePriceRampsFor}} {{priceRamp.getProductName()}}
+    </h3>
+    <span class="modal-header__close-modal" ng-click="priceRamp.close()"></span>
+  </div>
+  <div class="modal-content">
+    <div ng-show="priceRamp.hasErrorMessages()" class="error error--critical">
+      <div ng-repeat="error in priceRamp.errorMessages">
+        {{error}}
+      </div>
+    </div>
+    <div class="modal-content__modal-row-container ramp-Col">
+       <table>
+        <!--Column heading-->
+        <thead class="cart-label-row">
+          <th class="add-ramp">
+            {{priceRamp.labels.Add}}
+          </th>
+          <th ng-repeat="column in priceRamp.columns" 
+              ng-class="{'is--editable' : column.IsEditable}" 
+              class="main-cart-col main-cart-col--header  main-cart-col--{{column.columnClassName}}">
+            <div>
+              <label style="{{column.HeaderStyle}}">{{column.Label}}</label>
+            </div>
+          </th>
+          <th class="remove-ramp">
+            {{priceRamp.labels.Remove}}
+          </th>
+        </thead>
+        <tbody>
+          <!--top level cart line items-->
+          <tr item="rampLine" 
+              dir-paginate="rampLine in priceRamp.ramp.lineItem.rampLines | itemsPerPage: 10" 
+              class="line-item-row">
+            <td>
+              <i class="line-item--configurable ss-plus" ng-click="priceRamp.addRampLine(rampLine)"></i>
+            </td>  
+            <td ng-repeat="column in priceRamp.columns" 
+                ng-class="{'is--editable' : column.IsEditable}" 
+                class="main-cart-col main-cart-col--{{column.columnClassName}}">
+            
+              <!--Top level charge lines-->
+              <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+                <dynamic-field model="rampLine.lineItemSO[column.FieldName]" properties="column"></dynamic-field>
+              </div>
+                
+            </td>
+            <td>
+              <i class="line-item--configurable ss-trash" ng-click="priceRamp.removeRampLine(rampLine)"></i>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <div class="button-row">
+      <button class="primary"
+              ng-click="priceRamp.saveRamp()">
+              <span>{{priceRamp.labels.Save}}</span>
+      </button>
+      <button class="cancel"
+              ng-click="priceRamp.close()">
+              <span>{{priceRamp.labels.Cancel}}</span>
+      </button>
+    </div>
+  </div>
+</div>

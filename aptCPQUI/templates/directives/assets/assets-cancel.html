@@ -1,0 +1,119 @@
+<div class="main-cart-wrapper main-cart-wrapper--overflow">
+	<div class="loading" ng-show="cancelAssetCtrl.loading">Loading&#8230;</div>
+	<div class="cart-header">
+		<div class="cart-header__cart-title">
+			<h1>{{cancelAssetCtrl.labels.ConfirmTermination}}</h1>
+		</div>
+	</div>
+	<div class="main-asset-container--positioning">
+		<div class="main-asset-container-header">
+			<!-- <div class="loading-local" ng-show="true">Loading&#8230;</div> -->
+			<label class="asset-actions-text-label" for="{{cancelAssetCtrl.dateField.ElementId}}">{{cancelAssetCtrl.labels.TerminationDate}}</label>
+			<dynamic-field class="asset-action__effective-date" model="cancelAssetCtrl.globalEndDate" properties="cancelAssetCtrl.dateField"></dynamic-field>
+			 <!-- <input ng-style="{ 'border': cancelAssetCtrl.dateStyle }" class="asset-actions-text-input" pikaday="cancelAssetCtrl.globalEndDate" id="{{cancelAssetCtrl.dateField.ElementId}}"/> -->
+			<button class="primary asset-action-button-spacing"
+							ng-click="cancelAssetCtrl.handleCalculateMetrics(cancelAssetCtrl.globalEndDate)"
+							ng-disabled="(cancelAssetCtrl.globalEndDate === undefined || cancelAssetCtrl.globalEndDate === '')">
+				<span>{{cancelAssetCtrl.labels.Calculate}}</span>
+			</button>
+		</div>
+		<div class="main-asset-container">
+			<div ng-if="cancelAssetCtrl.currLineSelectionList.length == 0">
+				<H2>No Assets To Cancel</H2>
+			</div>
+			<div ng-if="cancelAssetCtrl.currLineSelectionList.length > 0">
+				<div class="asset-cancel__table-title" ng-repeat="lineItem in cancelAssetCtrl.currLineSelectionList">
+					<span ng-class="{'ss-dropdown' : cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id], 'ss-directright' : !cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id]}" class="cancel-asset__toggle" 
+					ng-click="cancelAssetCtrl.toggleTableShow(lineItem.assetLineItemSO.Id)"></span>
+					<span class="asset-state__header-text">{{lineItem.assetLineItemSO[cancelAssetCtrl.nsPrefix + 'ProductId__r'].Name}}</span>
+					<div class="cancel-asset__table-container" ng-show="cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id]">
+						<table class="asset-cancel__info-table asset-cancel__table-nodes">
+							<thead class="asset-section-table-header">
+								<th></th>
+								<th>Original</th>
+								<th><span ng-if="cancelAssetCtrl.calcDone">Projected</span></th>
+								<th><span ng-if="cancelAssetCtrl.calcDone">Difference</span></th>
+								<th></th>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Contract End Date</td>
+									<td>{{lineItem.assetLineItemSO[cancelAssetCtrl.nsPrefix + 'EndDate__c'] | date : 'shortDate'}}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{cancelAssetCtrl.endDateUTC | date : 'shortDate'}}</span></td>
+									<td></td>
+									<td></td>
+								</tr>
+								<!-- The following items need to come through billing data -->
+								<tr>
+									<td>Billed Through Date</td>
+									<td>{{lineItem.metrics.current.invoicedThroughDate | date : 'shortDate'}}</td>
+									<td></td>
+									<td></td>
+									<td></td>
+								</tr>
+								<tr class="asset__font-semibold">
+									<td>Total Billing</td>
+									<td>{{lineItem.metrics.current.totalBillings | aptNumberToCurrency }}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{lineItem.metrics.projected.totalBillings | aptNumberToCurrency }}</span></td>
+									<td><span 
+										ng-if="cancelAssetCtrl.calcDone">{{(lineItem.metrics.current.totalBillings - lineItem.metrics.projected.totalBillings) | aptNumberToCurrency }}</span></td>
+									<td></td>
+								</tr>
+								<tr>
+									<td>Contracted</td>
+									<td>{{lineItem.metrics.current.contracted | aptNumberToCurrency }}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{lineItem.metrics.projected.contracted | aptNumberToCurrency }}</span></td>
+									<td></td>
+									<td></td>
+								</tr>
+								<tr>
+									<td>Invoiced</td>
+									<td>{{lineItem.metrics.current.invoiced | aptNumberToCurrency }}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{lineItem.metrics.projected.invoiced | aptNumberToCurrency }}</span></td>
+									<td></td>
+									<td></td>
+								</tr>
+								<tr>
+									<td>Paid</td>
+									<td>{{lineItem.metrics.current.paid | aptNumberToCurrency }}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{lineItem.metrics.projected.paid | aptNumberToCurrency }}</span></td>
+									<td></td>
+									<td></td>
+								</tr>
+								<tr>
+									<td>Credited</td>
+									<td>{{lineItem.metrics.current.credited | aptNumberToCurrency }}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{lineItem.metrics.projected.credited | aptNumberToCurrency }}</span></td>
+									<td></td>
+									<td></td>
+								</tr>
+								<tr  class="asset__font-semibold">
+									<td>Balance</td>
+									<td>{{lineItem.metrics.current.balance | aptNumberToCurrency }}</td>
+									<td><span ng-if="cancelAssetCtrl.calcDone">{{lineItem.metrics.projected.balance | aptNumberToCurrency }}</span></td>
+									<td></td>
+									<td></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- confirm and cancel buttons -->
+<!-- 		<div class="main-asset-container-footer">
+			<div style="margin-top: 1.0rem">
+				<input class="asset-align__check-box" type="checkbox" id="provisioningOrderCheck" ng-model="cancelAssetCtrl.createProvisioningOrder"/>
+				<label class="asset-align__check-box" for="provisioningOrderCheck">Create Provisioning Order</label>
+			</div>
+		</div> -->
+		<div class="main-asset-container-footer">
+			<button ng-disabled="!cancelAssetCtrl.calcDone" class="secondary asset-action-button-spacing" ng-click="cancelAssetCtrl.handleConfirmOperation()">
+				<span>{{cancelAssetCtrl.labels.Confirm}}</span>
+			</button>
+	  	<button class="tertiary asset-action-button-spacing" ng-click="cancelAssetCtrl.handleCancelOperation()">
+	  		<span>{{cancelAssetCtrl.labels.Cancel}}</span>
+	  	</button>
+  	</div>
+	</div>
+</div>

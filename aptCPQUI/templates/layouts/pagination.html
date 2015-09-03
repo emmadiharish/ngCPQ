@@ -1,0 +1,35 @@
+
+<div ng-controller="paginationControlsCtrl as paginationCtrl" class="pagination">
+  <!--span.pagination__per-page
+  select(ng-model='pageSize', ng-init=20)
+      option(value='10') 10 per page
+      option(value='20') 20 per page
+      option(value='30') 30 per page
+  
+  -->
+  <span ng-if="range.total &gt; 0" class="pagination__display-range">
+    {{::paginationCtrl.labels.Products}} {{ range.lower }} - {{ range.upper }} ({{::paginationCtrl.labels.OutOf}} {{ range.total }})
+  </span>
+  <span ng-if="range.total &lt;= 0" class="pagination__display-range">
+    {{ range.total }} {{paginationCtrl.labels.ProductsFound}}
+  </span>
+  <ul ng-if="1 &lt; pages.length">
+    <li ng-if="boundaryLinks" ng-class="{ disabled : pagination.current == 1 }">
+      <a href="" ng-click="setCurrent(1)">&laquo;</a>
+    </li>
+    <li ng-if="directionLinks" ng-class="{ disabled : pagination.current == 1 }">
+      <a href="" ng-click="setCurrent(pagination.current - 1)">&lsaquo; {{::paginationCtrl.labels.PreviousPage}}</a>
+    </li>
+    <li ng-repeat="pageNumber in pages track by $index" 
+        ng-class="{ active : pagination.current == pageNumber, disabled : pageNumber == '...' }" 
+        class="numbers">
+      <a href="" ng-click="setCurrent(pageNumber)">{{pageNumber}}</a>
+    </li>
+    <li ng-if="directionLinks" ng-class="{ disabled : pagination.current == pagination.last }">
+      <a href="" ng-click="setCurrent(pagination.current + 1)">{{::paginationCtrl.labels.NextPage}} &rsaquo;</a>
+    </li>
+    <li ng-if="boundaryLinks" ng-class="{ disabled : pagination.current == pagination.last }">
+      <a href="" ng-click="setCurrent(pagination.last)">&raquo;</a>
+    </li>
+  </ul>
+</div>
