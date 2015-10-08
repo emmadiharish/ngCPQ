@@ -14,6 +14,9 @@
 	<title>Apttus</title>
 	<apex:stylesheet value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/assets/stylesheets/application.css')}"/>
 	<apex:stylesheet value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/assets/stylesheets/assetStyles.css')}"/> 
+	<apex:stylesheet value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/assets/stylesheets/font-awesome.min.css')}"/>
+	<apex:stylesheet value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/assets/stylesheets/select.css')}"/>
+	<apex:stylesheet value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/assets/stylesheets/dynamicFieldStyles.css')}"/>
 	
 	<apex:outputPanel rendered="{!NOT(ISNULL(CSSOverride))}">
 		<apex:dynamicComponent componentValue="{!CSSOverrideComponent}"/>
@@ -33,6 +36,8 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/lib/pikaday-angular.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/lib/Sortable.min.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/lib/ng-sortable.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/lib/angular-ui-select.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/lib/ngprogress.min.js')}"/>
 
 	<!--Main application setup/routes-->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/aptBase.js')}"/>
@@ -48,10 +53,13 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/labelService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/cartService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/categoryService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/filterSearchService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/configureService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/assetService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/appliedExpressionService.js')}"/>
 	<!-- Object Constructors-->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/lineItemModelService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/chargeLineModelService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/optionGroupModelService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/optionModelService.js')}"/>
 	<!-- Data Services-->
@@ -60,21 +68,20 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/attributeDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/cartDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/catalogDataService.js')}"/>
-	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/categoryDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/configurationDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/constraintRuleDataService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/fieldExpressionDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/pageErrorDataService.js')}"/>
 	
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/displayActionDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/optionDataService.js')}"/>
-	<!-- <apex:includeScript value="{!URLFOR($Resource.ngCPQ, '/aptCPQData/services/data/pageSettingsDataService.js')}"/> -->
-	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/productDataService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/data/productFilterDataService.js')}"/>
 	<!-- Cache Services -->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/cache/attributesCacheService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/cache/catalogCacheService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/cache/lineItemCacheService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/cache/optionsCacheService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/cache/fieldExpressionCacheService.js')}"/>
 	<!-- Utility Services -->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/services/actionQueueService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/services/i18nService.js')}"/>
@@ -82,12 +89,14 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/filters/numberToCurrencyFilter.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/filters/currencyToNumberFilter.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/filters/dateFilter.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/services/queueWrapperService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptBase/services/remoteService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/lineItemSupportService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/formulaEvaluatorService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/cartFormulaService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/formulaIteratorService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/attributeRulesService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQData/services/attributeMatrixService.js')}"/>
 	<!--Directives-->
 	<!--Common Directives-->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/common/displayActionsDirective.js')}"/>
@@ -103,6 +112,7 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/common/toggleAllClassDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/common/toggleClassDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/common/PageErrorMessagesDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/common/loadingIndicatorDirective.js')}"/>
 	<!-- Catalog-->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/catalog/breadCrumbDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/catalog/categoryBrowserDirective.js')}"/>
@@ -111,6 +121,7 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/catalog/catalogProductDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/catalog/refineSearchDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/catalog/searchProductDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/catalog/compareProductsDirective.js')}"/>
 	<!-- Configure -->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/checkboxOptionDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/checkboxOptionListDirective.js')}"/>
@@ -120,7 +131,8 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/configureProductNavDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/configureProductOptionsDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/mainConfigureProductDirective.js')}"/>
-	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/optionAttributeConfigDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/attributeGroupDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/attributeGroupsDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/optionGroupsDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/picklistOptionListDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/radioOptionDirective.js')}"/>
@@ -128,12 +140,16 @@
 	<!-- Cart-->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/cartEditableActionDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/cartHeaderDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/locationCartHeaderDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/cartLabelRowDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/cartLabelTotalsRowDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/cartTotalsDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/lineItemCartTotalDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/mainCartDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/miniCartDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/locationCartDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/pricingGuidanceDirective.js')}"/>
+	
 	<!-- Assets -->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/installedproducts/assetSummaryDialogDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/installedproducts/assetHeaderDirective.js')}"/>
@@ -161,7 +177,12 @@
 		(function() {
 			//Create System Properties constant
 			var baseUrl = formatSFDCUrl("{!URLFOR($Resource.ngCPQ, '/aptCPQUI')}");
-			var baseFileUrl = formatSFDCUrl("{!URLFOR($Action.Attachment.Download, SystemSettings['defaultIconId'])}");
+			var baseFileUrl = '';
+			//Special visualforce condition for when there is no icon id
+			<apex:outputPanel layout="none" rendered="{!SystemSettings['defaultIconId'] != 'none'}">
+				baseFileUrl = formatSFDCUrl("{!URLFOR($Action.Attachment.Download, SystemSettings['defaultIconId'])}");
+			</apex:outputPanel>
+			//End VF conditionally rendered code.
 			var systemConstants = {
 				"baseUrl": baseUrl,
 				"baseFileUrl": baseFileUrl,
@@ -171,7 +192,10 @@
 				"pendingStatusMap": {
 					"Cancelled" : "Pending Cancellation",
 					"Amended" : "Pending Change"
-				}
+				},
+				"pageParams" : JSON.parse('{!JSENCODE(pageParams)}'),
+				"customSettings" : JSON.parse('{!JSENCODE(CustomSettings)}')
+				
 			};
 			angular.module('aptCPQData').constant('baseUrl', baseUrl);
 			angular.module('aptCPQData').constant('systemConstants', systemConstants);
@@ -221,7 +245,7 @@
 				var cartId = "{!cartId}";
 				var configRequestId = "{!configRequestId}";
 				var priceListId;
-				var pageParams = JSON.parse('{!(pageParams)}');
+				var pageParams = JSON.parse('{!JSENCODE(pageParams)}');
 				ConfigurationDataServiceProvider.setRequestBase(cartId, configRequestId, priceListId, pageParams);
 
 			}
@@ -243,9 +267,10 @@
 					getConfigurationData: '{!$RemoteAction.RemoteCPQController.getConfigurationData}',
 					// Catalog operations
 					getCategories: '{!$RemoteAction.RemoteCPQController.getCategories}',
-					getProducts: '{!$RemoteAction.RemoteCPQController.getProducts}',
+					//getProducts: '{!$RemoteAction.RemoteCPQController.getProducts}',
 					getProductsByIds: '{!$RemoteAction.RemoteCPQController.getProductsByIds}',
 					searchProducts: '{!$RemoteAction.RemoteCPQController.searchProducts}',
+					compareProducts: '{!$RemoteAction.RemoteCPQController.compareProducts}',
 					// Cart + line item operations
 					getCartLineItems: '{!$RemoteAction.RemoteCPQController.getCartLineItems}',
 					getCart: '{!$RemoteAction.RemoteCPQController.getCart}',
@@ -255,9 +280,18 @@
 					getLineItemDetails: '{!$RemoteAction.RemoteCPQController.getLineItemDetails}',
 					getProductDetails: '{!$RemoteAction.RemoteCPQController.getProductDetails}',
 					performAction: '{!$RemoteAction.RemoteCPQController.performAction}',
-					ignoreRuleAction: '{!$RemoteAction.RemoteCPQController.ignoreRuleAction}',
-					getExcludedProductIds: '{!$RemoteAction.RemoteCPQController.getExcludedProductIds}',
-					getExcludedOptionIds: '{!$RemoteAction.RemoteCPQController.getExcludedOptionIds}',
+					ignoreRuleAction: { 
+						actionName : '{!$RemoteAction.RemoteCPQController.ignoreRuleAction}', 
+						skipLoader : true 
+					},
+					getExcludedProductIds: { 
+						actionName : '{!$RemoteAction.RemoteCPQController.getExcludedProductIds}', 
+						skipLoader : true 
+					},
+					getExcludedOptionIds: { 
+						actionName : '{!$RemoteAction.RemoteCPQController.getExcludedOptionIds}', 
+						skipLoader : true 
+					},
 					
 					// Retreive sample requests from controller
 					getProductSearchSample: '{!$RemoteAction.RemoteCPQController.getProductSearchSample}',
@@ -273,6 +307,8 @@
 				RemoteServiceProvider.setRemoteActions(remoteActions);
 				// Need retURL or other url for redirect. Default is to redirect to '/'. 
 				RemoteServiceProvider.setRedirectLocation('{!$CurrentPage.parameters.retURL}');
+				// Set flag true to overrides skipLoader flags of RemoteActions and show loader all remoteServiceCalls. 	
+				RemoteServiceProvider.setTrackAllRemoteCalls(false);
 
 			}
 		})();
@@ -326,7 +362,6 @@
 		</div>
 		<constraint-dialog></constraint-dialog>
 		<product-summary-dialog></product-summary-dialog>
-		<asset-summary-dialog></asset-summary-dialog>
 		<price-ramp-dialog></price-ramp-dialog>
 		<div class="display-actions">
 			<div ui-view="displayActions"></div>
