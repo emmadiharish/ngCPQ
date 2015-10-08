@@ -1,37 +1,34 @@
-(function() {
-	var PageErrorMessages, PageErrorMessagesCtrl;
-
-	PageErrorMessagesCtrl = function(PageErrorDataService) {
-		this.pageErrors = function() {
-			return this.messenger.errorMessages;
-		};
-		
-		this.hasPageErrors = function() {
-			return this.messenger.errorMessages.length != 0;
-		};
-		
-		this.hasPageErrorMessages = function() {
-			return this.hasPageErrors();
-		};
-		this.messenger = PageErrorDataService;
-		
-		return this;
-		
-	};
-
-	PageErrorMessagesCtrl.$inject = ['PageErrorDataService'];
-
-	PageErrorMessages = function(systemConstants) {
-		return {
-			templateUrl: systemConstants.baseUrl + '/templates/directives/page-error-messages.html',
-			controller: PageErrorMessagesCtrl,
-			controllerAs: 'pageErrors',
-			bindToController: true
-		};
-	};
-
-	PageErrorMessages.$inject = ['systemConstants'];
+;(function() {
+	'use strict';
 
 	angular.module('aptCPQUI').directive('pageErrorMessages', PageErrorMessages);
 
-}).call(this);
+	PageErrorMessages.$inject = ['systemConstants'];
+
+	function PageErrorMessages(systemConstants) {
+		return {
+			controller: PageErrorMessagesCtrl,
+			controllerAs: 'pageErrors',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/common/page-error-messages.html'
+		};
+
+	}
+
+	PageErrorMessagesCtrl.$inject = ['PageErrorDataService'];
+
+	function PageErrorMessagesCtrl(PageErrorDataService) {
+		this.hideDetails = true;
+
+		this.pageErrors = function() {
+			return PageErrorDataService.errorMessages;
+		};
+
+		this.hasPageErrors = function() {
+			return PageErrorDataService.errorMessages.length !== 0;
+		};
+		return this;
+
+	}
+
+})();

@@ -1,28 +1,39 @@
+/**
+ * Service: CatalogDataService 
+ */
 ;(function() {
-	angular.module('aptCPQData')
-		.service('CatalogDataService', CatalogDataService); 
+	'use strict';
 
-	CatalogDataService.$inject = ['$q', '$log', '$http', 'ConfigurationDataService', 'aptBase.RemoteService', 'aptBase.UtilService', 'CatalogCache'];
+	angular.module('aptCPQData').service('CatalogDataService', CatalogDataService); 
+
+	CatalogDataService.$inject = ['$q', 
+	                              '$log', 
+	                              '$http', 
+	                              'ConfigurationDataService', 
+	                              'aptBase.RemoteService', 
+	                              'aptBase.UtilService', 
+	                              'CatalogCache'];
 
 	function CatalogDataService($q, $log, $http, ConfigurationDataService, RemoteService, UtilService, CatalogCache) {
 		var service = this;
 		var categoryRequestPromise;
 		var productSummaryId;
+		var productSearchPromiseMap = {};
 
 		service.transactionJSON = {};
+		service.categoryId; //current categoryId
 
 		//Create a catalog request structure, points to ConfigurationDataService
 		service.createCatalogRequestDO = ConfigurationDataService.createCatalogRequestDO;
 
 		//Category methods
 		service.getCategories = getCategories;
-		service.getCatById = getCatById;
-		service.getCategory = getCatById;
+		service.getCategory = getCategory;
 		service.getAncestors = getAncestors;
 		service.getBreadcrumb = getBreadcrumb;
 
 		//Product methods
-		service.getCategoryIdsForLeaves = getCategoryIdsForLeaves;
+		service.getLineageCategoryIds = getLineageCategoryIds;
 		service.getCategoryTreeForLeaves = getCategoryTreeForLeaves;
 		service.searchProducts = searchProducts;
 		service.getProductById = getProductById;
@@ -34,6 +45,7 @@
 		service.getProductSummary = getProductSummary;
 		service.setProductSummaryId = setProductSummaryId;
 		service.getProductSummaryId = getProductSummaryId;
+		service.getCompareProductFeatures = getCompareProductFeatures;
 
 		/**
 		 * Get all categories.
@@ -59,9 +71,9 @@
 			var requestPromise = service.createCatalogRequestDO(null, null, null, responseIncludes, null).then(function(categoryRequest){
 				return RemoteService.getCategories(categoryRequest);
 			});
-			
-			categoryRequestPromise = requestPromise.then(function(response) {
-				CatalogCache.initializeCategories(response.categories);
+
+			categoryRequestPromise = requestPromise.then(function(result) {
+				CatalogCache.initializeCategories(result.categories);
 				return CatalogCache.getCategories();
 
 			});
@@ -75,7 +87,7 @@
 		 * 	retrieved, then ask the cache for a particular id. 
 		 * 
 		 */
-		function getCatById(categoryId) {
+		function getCategory(categoryId) {
 			return getCategories().then(function(result) {
 				return CatalogCache.getCategoryById(categoryId);
 
@@ -108,12 +120,12 @@
 		 * @param  {[type]} leafIds [description]
 		 * @return {[type]}         [description]
 		 */
-		function getCategoryIdsForLeaves(leafIds) {
+		function getLineageCategoryIds(leafIds) {
 			return getCategories().then(function(result) {
 				//External code expects promise to resolve with a response object 
 				//	instead of the actual array. This isn't how we want it. 
 				var response = {};
-				response.resultCategories = CatalogCache.getAncestorIdSet(leafIds);
+				response.categoryIdSet = CatalogCache.getAncestorIdSet(leafIds);
 				return response;
 			});
 
@@ -154,14 +166,14 @@
 				return $q.when({"products": products});
 			}
 
-			includeParams = ['prices'];
+			var includeParams = ['prices'];
 
 			var resultPromise = service.createCatalogRequestDO(null, null, null, includeParams, null).then(function(catalogRequest){
 				catalogRequest.productIds = productIdsNotInCache;
 				return RemoteService.getProductsByIds(catalogRequest);
-				
+
 			});
-			
+
 			return resultPromise.then(function (result) {
 				//TODO: put into cache
 				angular.forEach(result, function(value, key){
@@ -180,12 +192,12 @@
 				return $q.when(cachedFilters);
 
 			}
-			includeParams = ['productFilters'];
-			
+			var includeParams = ['productFilters'];
+
 			var filterPromise = service.createCatalogRequestDO(categoryId, null, null, includeParams, null).then(function(searchRequest){
 				return RemoteService.searchProducts(searchRequest);
 			});
-			 
+
 			return filterPromise.then(function (result) {
 				CatalogCache.putProductFiltersForCategory(categoryId, result.productFilters);
 				return CatalogCache.getProductFiltersForCategory(categoryId);
@@ -205,14 +217,14 @@
 
 			if(products) {
 				productsForCategory = products;
-			
+
 			} else {
 				productsForCategory = CatalogCache.getProductsForCategory(categoryId);
-			
+
 			}
 
 			var contextProductIds = [];
-			
+
 			if(!productsForCategory  || productsForCategory.length === 0) {
 				return $q.when([]);
 
@@ -220,18 +232,27 @@
 
 			for(var productIndex = 0; productIndex < productsForCategory.length; productIndex++) {
 				contextProductIds.push(productsForCategory[productIndex].productSO.Id)
-			
+
 			}
-			
+
 			return ConfigurationDataService.requestBasePromise.then(function(requestBase){
 				return RemoteService.getExcludedProductIds(requestBase.cartId, contextProductIds).then(function(result) {
 					return result;
 				});
 			});	
-			
+
 
 		}
 
+		/**
+		 * Returns Feature Set and Product Feature Value 
+		 * @param {array<ID>} product ids for products to compare
+		 */
+		function getCompareProductFeatures(productIds) {
+			return RemoteService.compareProducts(productIds).then(function(result) {
+				return result;
+			});
+		}
 
 		/**
 		 * Search for products
@@ -241,39 +262,53 @@
 		 * @param  {array<object>} productFilters filters to apply
 		 */
 		function searchProducts(categoryId, searchText, productFilters) {
+			service.categoryId = categoryId;
 			// Using ugly string checking to see whether product filters are being used 
 			var isProductFilterSelected = productFilters ? (JSON.stringify(productFilters).indexOf('"isSelected":true') >= 0) : false;
 			var hasSearchText = searchText && searchText.length && searchText.length > 0;
 			if (!hasSearchText && !isProductFilterSelected) {
 				var cachedProducts = CatalogCache.getProductsForCategory(categoryId);
-				if (cachedProducts) {
+				if (cachedProducts && cachedProducts.length > 0) {
 					$log.debug('Search Products: Returning cached products.');
 					var response = {
 							"products": cachedProducts,
-							"resultCategoryIds": [categoryId]
+							"resultCategoryIds": CatalogCache.getLeafNodesForCategory(categoryId),
+							"productFilters": CatalogCache.getProductFiltersForCategory(categoryId)
 					};
 					return $q.when(response);
 
 				}
 
 			}
+			
 			var includeParams = ['prices', 'defaultOptionProducts'];
-			if (!CatalogCache.getProductFiltersForCategory(categoryId)) {
+			var requestPromise; //avoid double search coming from different directives 
+			if (angular.isUndefined(productFilters)) {
 				includeParams.push('productFilters');
+				requestPromise = productSearchPromiseMap[categoryId+'||'+searchText];
 
 			}
-			
-			var requestPromise = service.createCatalogRequestDO(categoryId, searchText, productFilters, includeParams, null).then(function(searchRequest){
-				return RemoteService.searchProducts(searchRequest);
-			});
-								
-			return requestPromise.then(function(response) {
-				CatalogCache.putProducts(response.products);
-				if (response.productFilters) {
-					CatalogCache.putProductFiltersForCategory(categoryId, response.productFilters);
 
-				}
-				return response;	
+			if (angular.isUndefined(requestPromise)) {
+				requestPromise = service.createCatalogRequestDO(categoryId, searchText, productFilters, includeParams, null).then(function(searchRequest){
+					return RemoteService.searchProducts(searchRequest);
+				});
+				productSearchPromiseMap[categoryId+'||'+searchText] = requestPromise;
+				
+			}
+			
+			return requestPromise.then(function(result) {
+				// $log.debug('searchProducts-->timeTaken: ', result.timeTaken/1000 + ' seconds, queryCount: ', result.queryCount);
+
+				CatalogCache.putProducts(result.products);
+				if (result.productFilters) {
+					if (angular.isDefined(categoryId) && includeParams.indexOf('productFilters') > -1) {
+						CatalogCache.putProductFiltersForCategory(categoryId, result.productFilters);
+						
+					}
+
+				} 
+				return result;	
 
 			});
 
@@ -304,13 +339,15 @@
 				var includeParams = ['prices', 'defaultOptionProducts'];
 				//includeParams.push('productFilters');
 				return service.createCatalogRequestDO(categoryId, searchText, productFilters, includeParams, null).then(function(productRequest){
-					return RemoteService.searchProducts(productRequest).then(function (response) {
-						CatalogCache.putProducts(response.products);
-						return response;
+					return RemoteService.searchProducts(productRequest).then(function (result) {
+						// $log.debug('searchProducts-->timeTaken: ', result.timeTaken/1000 + ' seconds, queryCount: ', result.queryCount);
+
+						CatalogCache.putProducts(result.products);
+						return result;
 					});
 
 				});
-				
+
 			});
 
 		}
@@ -378,7 +415,7 @@
 					return result;
 				});
 			}	
-			
+
 		}
 
 		/**

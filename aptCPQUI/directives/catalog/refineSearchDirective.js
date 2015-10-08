@@ -1,25 +1,40 @@
-(function() {
-  var RefineSearch, refineSearchCtrl;
+/**
+ * Directive: refineSearch
+ * 	Defines refine search 
+ */
+;(function() {
+	'use strict';
 
-  refineSearchCtrl = function(Category, i18nService) {
-    this.labels = i18nService.CustomLabel;
-    this.category = Category;
-    return this;
-  };
+	angular.module('aptCPQUI').directive('refineSearch', RefineSearch);
 
-  refineSearchCtrl.$inject = ['CategoryService', 'aptBase.i18nService'];
+	RefineSearch.$inject = ['systemConstants'];
 
-  RefineSearch = function(systemConstants) {
-    return {
-      templateUrl: systemConstants.baseUrl + "/templates/directives/refine-search.html",
-      controller: refineSearchCtrl,
-      controllerAs: 'refineSearch',
-      bindToController: true
-    };
-  };
+	function RefineSearch(systemConstants) {
+		return {
+			controller: RefineSearchCtrl,
+			controllerAs: 'refineSearch',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + "/templates/directives/catalog/refine-search.html"
+		};
+	};
 
-  RefineSearch.$inject = ['systemConstants'];
+	RefineSearchCtrl.$inject = ['aptBase.i18nService', 'CategoryService'];
 
-  angular.module('aptCPQUI').directive('refineSearch', RefineSearch);
+	function RefineSearchCtrl(i18nService, CategoryService) {
+		var ctrl = this;
+		ctrl.labels = i18nService.CustomLabel;
+		
+		ctrl.getFilters = function(){
+			return CategoryService.filters;
+		};
+		
+		ctrl.searchProducts = function(){
+			return CategoryService.updateProducts().then(function(result){
+				return result;
+			});
+		};
+		
+		return ctrl;
+	};
 
 }).call(this);

@@ -1,44 +1,50 @@
-(function() {
-  var CartTotals, cartTotalsCtrl;
+/**
+ * Directive: cartTotals
+ */
+;(function() {
+	'use strict';
 
-  cartTotalsCtrl = function(CartService, $q) {
-    var activate, vm;
-    vm = this;
-    vm.getSummaryItem = function(key) {
-      if (vm.item.summaryGroupSO[key]) {
-        return vm.item.summaryGroupSO[key];
-      } else {
+	angular.module('aptCPQUI').directive('cartTotals', CartTotals);
 
-      }
-    };
-    vm.isFieldEditable = function(lineTotal, column) {
-      return column.IsEditable && lineTotal.readOnlyFields.indexOf(column.FieldName) <  0;
-      
-    };
-    activate = function() {
-      return $q.all([CartService.getCartTotalSummaryColumns(), CartService.getCartTotalsDisplayData()]).then(function(res) {
-        vm.totalColumns = res[0];
-        return vm.totals = res[1];
-      });
-    };
-    return activate();
-  };
+	CartTotals.$inject = ['systemConstants'];
 
-  cartTotalsCtrl.$inject = ['CartService', '$q'];
+	function CartTotals(systemConstants) {
+		return {
+			controller: CartTotalsCtrl,
+			controllerAs: 'cartTotals',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/cart/cart-totals-table.html'
+		};
 
-  CartTotals = function(systemConstants) {
-    var directive;
-    directive = {
-      templateUrl: systemConstants.baseUrl + '/templates/directives/cart-totals-table.html',
-      controller: cartTotalsCtrl,
-      controllerAs: 'cartTotals',
-      bindToController: true
-    };
-    return directive;
-  };
+	};
 
-  CartTotals.$inject = ['systemConstants'];
+	CartTotalsCtrl.$inject = ['CartService', '$q'];
 
-  angular.module('aptCPQUI').directive('cartTotals', CartTotals);
+	function CartTotalsCtrl(CartService, $q) {
+		var ctrl = this;
+		ctrl.getSummaryItem = function(key) {
+			if (ctrl.item.summaryGroupSO[key]) {
+				return ctrl.item.summaryGroupSO[key];
+			} else {
+
+			}
+		};
+		ctrl.isFieldEditable = function(lineTotal, column) {
+			if(angular.isUndefined(lineTotal)) {
+				return false;
+			}
+			return column.IsEditable && lineTotal.readOnlyFields.indexOf(column.FieldName) <  0;
+
+		};
+
+		function activate() {
+			return $q.all([CartService.getCartTotalSummaryColumns(), CartService.getCartTotalLines()]).then(function(res) {
+				ctrl.totalColumns = res[0];
+				return ctrl.totals = res[1];
+			});
+		};
+		return activate();
+	};
+
 
 }).call(this);

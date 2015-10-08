@@ -9,13 +9,14 @@
 
 	CartService.$inject = [
 	                       '$http',  
-	                       'systemConstants', 
+	                       'systemConstants',
+	                       'aptBase.UtilService', 
 	                       'CartDataService',
 	                       'CategoryService',
 	                       'LineItemSupport'
 	                       ];
 
-	function CartService($http, systemConstants, CartDataService, CategoryService, LineItemSupport) {
+	function CartService($http, systemConstants, UtilService, CartDataService, CategoryService, LineItemSupport) {
 		var nsPrefix, _cartColumnDetailAsFirstNode, _cartColumnsWithTypeClassNames, _checkBoxIdsToModels, _flattenOpts, _getLineItemIds, _getLineItemOptionLines, _getOptionsIds, _getlineItemsWithOptions, _setNullFieldTypes, _removeDetailNode;
 		var service = this;
 		nsPrefix = systemConstants.nsPrefix;
@@ -35,14 +36,23 @@
 		service.addRampLine = function(rampLine) {
 			var currentRampIndex = service.ramp.lineItem.rampLines.indexOf(rampLine);
 			var clonedRampLine = LineItemSupport.newLineItemsFromClone(rampLine);
-			
-			if(clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c']) {
-				clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'] = clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'] + (1000 * 60 * 60 * 24);
+
+			if(angular.isDefined(clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'])) {
+				var endDate = new Date(clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c']);
+				var newStartDate = endDate.setDate(endDate.getDate() + 1);
+				clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'] = newStartDate;
 			}
 
-			if (clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c']) {
-				clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'] = clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'] + (1000 * 60 * 60 * 24);
-			}  
+			if(angular.isDefined(clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'])) {
+				if(clonedRampLine.lineItemSO[nsPrefix + 'PriceType__c'] === UtilService.priceTypesConstants.PRICETYPE_RECURRING) {
+					clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'] = UtilService.computeEndDate(clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'], 
+																						 			clonedRampLine.lineItemSO[nsPrefix + 'SellingTerm__c'], 
+																						 			clonedRampLine.lineItemSO[nsPrefix + 'SellingFrequency__c']);	
+				} else {
+					var newEndDate = new Date(clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c']);
+					clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'] = newEndDate.setDate(newEndDate.getDate() + 1);
+				}
+			} 
 
 			service.ramp.lineItem.rampLines.splice(currentRampIndex + 1, 0, clonedRampLine);
 
@@ -69,6 +79,19 @@
 			return CartDataService.getCartLineItems();
 		};
 
+		service.getCartLocations = function() {
+			return CartDataService.getCartLocations();
+		};
+
+		//TODO: Remove this function once its merged with location line items.
+		service.getLineItemsWithoutLocation = function() {
+			return CartDataService.lineItemsWithoutLocation;
+		};
+
+		service.getLocationLineItems = function() {
+			return CartDataService.locationLineItems;
+		}
+
 		service.getLineItem = function(lineItemId) {
 			return CartDataService.getLineItem(lineItemId);
 		};
@@ -77,8 +100,8 @@
 			return CartDataService.getDisplayActions(type);
 		};
 
-		service.getCartTotalsDisplayData = function() {
-			return CartDataService.getCartTotalsDisplayData();
+		service.getCartTotalLines = function() {
+			return CartDataService.getCartTotalLines();
 		};
 
 		service.addToCart = function(lineItemList) {
@@ -94,16 +117,12 @@
 			return CartDataService.configureBundle(bundleProduct);
 		};
 
-		service.updateCartLineItems = function(lineItemList) {
-			return CartDataService.updateCartLineItems(lineItemList);
+		service.updateCartLineItems = function() {
+			return CartDataService.updateCartLineItems();
 		};
 
 		service.resequenceLineItems = function(movedItem, oldIndex, newIndex) {
 			return CartDataService.resequenceLineItems(movedItem, oldIndex, newIndex);
-		};
-
-		service.configureCartLineItems = function(lineItemList) {
-			return CartDataService.configureCartLineItems(lineItemList);
 		};
 
 		service.removeFromCart = function(lineItemList) {
@@ -153,6 +172,20 @@
 			});
 
 		};
+
+		service.getLocationCartCheckBoxModels = function() {
+			return CartDataService.getCartLineItems().then(function (cartLineItems) {
+				if (!service.locationCartCheckBoxModels) {
+					service.locationCartCheckBoxModels =  {
+							lineItems: [],
+							all: {}
+					};
+
+				}
+				return service.locationCartCheckBoxModels;
+
+			});			
+		}
 
 		_setNullFieldTypes = function(columns) {
 			var removedNulls;

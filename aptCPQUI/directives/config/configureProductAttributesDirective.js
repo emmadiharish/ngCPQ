@@ -127,7 +127,7 @@
       restrict: 'AE',
       scope: {
       },
-      templateUrl: systemConstants.baseUrl + "/templates/directives/configure-product-attributes.html",
+      templateUrl: systemConstants.baseUrl + "/templates/directives/options/configure-product-attributes.html",
       controller: ConfigureProductAttributesCtrl,
       controllerAs: 'config',
       bindToController: true,      

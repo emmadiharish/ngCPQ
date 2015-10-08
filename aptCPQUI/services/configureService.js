@@ -8,12 +8,13 @@
 		'$log',
 		'systemConstants',
 		'LineItemModelService',
+		'OptionDataService',
 		'CartDataService',
 		'ConstraintRuleDataService',
 		'ConfigurationDataService'
 	];
 	 
-	function ConfigureService($q, $log, systemConstants, LineItemModel, CartDataService, ConstraintRuleDataService, ConfigurationDataService) {
+	function ConfigureService($q, $log, systemConstants, LineItemModel, OptionDataService, CartDataService, ConstraintRuleDataService, ConfigurationDataService) {
 		var service = this;
 		var nsPrefix = systemConstants.nsPrefix;
 		service.excludedOptionIds = [];
@@ -25,18 +26,29 @@
 		 * @param {number} txnPrimaryLineNumber  item identifier
 		 */
 		service.setLineitemToConfigure = function(txnPrimaryLineNumber) {
-			return CartDataService.getLineItem(txnPrimaryLineNumber).then(function(lineItemData) {
-				return LineItemModel.create(lineItemData).then(function(newLineItem) {
-					service.lineItem = newLineItem;
-					ConstraintRuleDataService.contextLineItem = newLineItem;
-					service.getExcludedOptionIds();
-					service.getPageSettings();
-					return service.lineItem;
+			return CartDataService.getLineItem(txnPrimaryLineNumber).then(function (lineItem) {
+				service.lineItem = lineItem;
 				
-				});
+				ConstraintRuleDataService.contextLineItem = service.lineItem;
+				service.getExcludedOptionIds();
+				service.getPageSettings();
+				return service.lineItem;
 			
 			});
 			
+		};
+
+		service.formatPageUrl = function(optionGroup) {
+			var pageUrl = optionGroup.getDetailPageUrl();
+			var optionGroupId = optionGroup.groupInfo.id;
+			return ConfigurationDataService.formatPageUrl(pageUrl) 
+				+ '&primaryLineNumber=' + service.lineItem.txnPrimaryLineNumber
+				+ '&optionGroupId=' + optionGroupId;
+		};
+		
+		service.getOptionGroups = function() {
+			var productId = service.lineItem.productId();
+			return OptionDataService.getOptionGroups(productId);
 		};
 
 		service.getPageSettings = function () {
@@ -47,7 +59,8 @@
 		};
 
 		service.getExcludedOptionIds = function() {
-			var contextBundleNumber = service.lineItem ? service.lineItem.lineItemSO()[nsPrefix + 'PrimaryLineNumber__c'] : undefined;
+			// var contextBundleNumber = service.lineItem ? service.lineItem.lineItemSO()[nsPrefix + 'PrimaryLineNumber__c'] : undefined;
+			var contextBundleNumber = service.lineItem ? service.lineItem.primaryLineNumber() : undefined;
 			if (!contextBundleNumber) {
 				service.excludedOptionIds.length = 0;
 				return $q.when(service.excludedOptionIds);
@@ -66,7 +79,8 @@
 		 * @return {[type]} [description]
 		 */
 		service.updateBundle = function() {
-			return CartDataService.updateBundle(service.lineItem.data).then(service.getExcludedOptionIds);
+			// return CartDataService.updateBundle(service.lineItem.lineItemDO).then(service.getExcludedOptionIds);
+			return CartDataService.updateBundle(service.lineItem).then(service.getExcludedOptionIds);
 
 		};
 		

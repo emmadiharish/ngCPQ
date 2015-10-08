@@ -13,8 +13,11 @@
 	function PicklistOptionListCtrl($q, systemConstants, ConfigureService) {
 		var picklistCtrl = this;
 		var nsPrefix = systemConstants.nsPrefix;
+
 		picklistCtrl.hasChildren = function() {
-			return picklistCtrl.selected && (picklistCtrl.nextLevel() < 4) && picklistCtrl.selected.optionLine.hasOptions();
+			var selectedLine = picklistCtrl.selected.lineItem;
+			var optionsOrAttrs = selectedLine.hasOptions() || selectedLine.hasAttrs();
+			return (optionsOrAttrs && picklistCtrl.nextLevel() < 4);
 		};
 		picklistCtrl.getLevel = function() {
 			return parseInt(picklistCtrl.level);
@@ -54,7 +57,7 @@
 			var wrapperPromises = [];
 			for (var i = 0, len = optionWrappers.length; i < len; i++) {
 				var optionWrapper = optionWrappers[i];
-				wrapperPromises.push(optionWrapper.init());
+				wrapperPromises.push(optionWrapper);
 			}
 			$q.all(wrapperPromises).then(function (resultOptions) {
 				for (var i = 0, len = resultOptions.length; i < len; i++) {

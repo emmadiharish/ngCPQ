@@ -1,0 +1,9 @@
+<div ng-show="pageErrors.hasPageErrors()" class="error error--critical">
+	<ul class="error__error-list" ng-click="pageErrors.hideDetails = !pageErrors.hideDetails">
+		<li ng-repeat="error in pageErrors.pageErrors()">
+			<p ng-class="{ 'no-wrap': pageErrors.hideDetails }">
+				<i class="fa fa-exclamation"></i>{{error}}
+			</p>
+		</li>
+	</ul>
+</div>

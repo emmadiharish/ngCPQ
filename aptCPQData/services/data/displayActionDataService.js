@@ -15,6 +15,7 @@
 	function DisplayActionDataService($log, $q, ConfigurationDataService) {
 		var service = this;
 		service.displayType;
+		service.actionsDisabled = false;
 		
 		service.actions = {};
 		service.finalizeActionInfo;
@@ -41,7 +42,7 @@
 		 */
 		function getAllDisplayActions(){
 			if (service.actionPromise == null) {
-				$log.log('invoking----> ConfigurationDataService.getDisplayActions');
+				// $log.log('invoking----> ConfigurationDataService.getDisplayActions');
 				
 				service.actionPromise = ConfigurationDataService.getDisplayActions().then(function (result) {
 					angular.forEach(result, function(value, page){
@@ -75,6 +76,13 @@
 		}
 
 		/**
+		 * sets the inputs disabled flag
+		 */
+		service.disableActions = function (disabled) {
+			service.actionsDisabled = disabled;
+		};
+
+		/**
 		 * sets display type for the current state(page) 
 		 */
 		service.setDisplayType = function setDisplayType(state) {
@@ -95,6 +103,9 @@
 				break;
 			case 'assets':
 				type = 'assetPageActions';
+				break;
+			case 'location-cart':
+				type = 'cartPageActions';
 				break;
 			default:
 				type = state.current.name;

@@ -1,39 +1,99 @@
-(function() {
-  angular.module('aptCPQUI').service('CategoryService', [
-    'CatalogDataService', 'CategoryDataService', 'ProductDataService', 'ProductFilterDataService', function(CatalogService, CategoryDataService, ProductData, ProductFilterDataService) {
-      var CategoryServiceRef = this;
-      CategoryServiceRef.contextProductIds;
-      CategoryServiceRef.excludedProductIds = [];
-      this.setCurrentCategory = function(categoryID) {
-        this.id = categoryID;
-        return CategoryDataService.getCategory(categoryID).then((function(_this) {
-          return function(category) {
-            _this.current = category;
-            return ProductFilterDataService.getFiltersFor(categoryID).then(function(filters) {
-              _this.filters = filters;
-              return _this.updateProducts();
-            });
-          };
-        })(this));
-      };
-      this.updateProducts = function() {
-        return ProductData.searchProducts(this.id, this.searchText, this.filters).then((function(_this) {
-          return function(result) {
-            return _this.products = result.products;
-          };
-        })(this));
-      };
+/**
+ * Service: CategoryService
+ * 	keeps track of category selection
+ */
+;(function() {
+	'use strict';
 
-      this.getExcludedProductsInContext = function() {
-        return CategoryDataService.getExculdedProductIds(CategoryServiceRef.id, CategoryServiceRef.contextProductIds).then(function(productIds) {
-          Array.prototype.splice.apply(CategoryServiceRef.excludedProductIds, [0,CategoryServiceRef.excludedProductIds.length].concat(productIds));
-          return CategoryServiceRef.excludedProductIds;
+	angular.module('aptCPQUI').service('CategoryService', CategoryService);
+	
+	CategoryService.$inject = ['$q', 'CatalogDataService', 'ProductFilterDataService'];
 
-        });
-      }
+	function CategoryService($q, CatalogDataService, ProductFilterDataService) {
+		var service = this;
+		
+		service.contextProductIds; //value is set by controller 
+		service.excludedProductIds = [];
+		service.categoryId;
+		service.rootId;
+		service.searchText; //currently value is not set, category browsing is not constrained by search term
+		service.filters; //used only for across categories
+		
+		service.setCurrentCategory = function(categoryId) {
+			if (service.categoryId !== categoryId) {
+				service.filters = undefined;
+			}
+			service.categoryId = categoryId;
+			return CatalogDataService.getCategory(categoryId).then(function(category) {
+				return CatalogDataService.searchProducts(service.categoryId, service.searchText, service.filters).then( function (result) {
+						service.products = result.products;
+						service.resultCategoryIds = result.resultCategoryIds;
+						service.filters = result.productFilters;
+						service.searchResultLoaded = true;
+						return service.products; 
+				});	
+			});
+		};
+		
+		service.getDefaultSearchCategory = function() {
+			return CatalogDataService.getCategories().then(function(categories) {
+				if (service.defaultLaunched !== true) {
+					for (var i = 0; i < categories.length; i++) {
+						var category = categories[i];
+						if (category.defaultSearchCategory === true) {
+							category = findDefaultSearchCategory([].concat(category));
+							service.categoryId = category.nodeId;
+							service.defaultLaunched = true;
+							return category.nodeId;
+						}
+					}
+				}
+				return null;
+			});
+			
+		};
 
-      return this;
-    }
-  ]);
+
+		service.updateProducts = function() {
+			return CatalogDataService.searchProducts(service.categoryId, service.searchText, service.filters).then(function(result) {
+				service.products = result.products;
+				return service.products;
+
+			});
+		};
+
+		service.getExcludedProductsInContext = function() {
+			return CatalogDataService.getExculdedProductIds(service.categoryId, service.contextProductIds).then(function(productIds) {
+				Array.prototype.splice.apply(service.excludedProductIds, [0, service.excludedProductIds.length].concat(productIds));
+				return service.excludedProductIds;
+
+			});
+		}
+
+		/**
+		 * returns first category or the one that is marked as default search category.
+		 */
+		function findDefaultSearchCategory(categories) {
+			for (var i = 0; i < categories.length; i++) {
+				var category = categories[i];
+				if (category.defaultSearchCategory === true) {
+					if (category.leaf === true) {
+						return category;
+
+					} else if (category.childCategories.length > 0) {
+						return findDefaultSearchCategory(category.childCategories);
+
+					}
+
+				}
+
+			}
+			//default to first one	
+			return categories[0];
+
+		}
+
+		return service;
+	}
 
 }).call(this);

@@ -12,7 +12,7 @@
 	function RadioOptionCtrl(systemConstants, ConfigureService, CatalogDataService) {
 		var radioCtrl = this;
 		var nsPrefix = systemConstants.nsPrefix;
-		radioCtrl.option.init();
+		var showTabView = !!systemConstants.customSettings.optionsPageSettings.TabViewInConfigureBundle;
 
 		radioCtrl.toggleOption = function() {
 			if (!radioCtrl.option.isSelected()) {
@@ -31,9 +31,33 @@
 
 		};
 
-		radioCtrl.hasChildren = function() {
-			return radioCtrl.option.isSelected() && (radioCtrl.nextLevel() < 4) && radioCtrl.option.optionLine.hasOptions();
+		radioCtrl.isOptionDisabled = function() {
+			if (!radioCtrl.option.group.isModifiable()) {
+				return true;
+				
+			}
+			if (!radioCtrl.option || radioCtrl.option.isSelected()) {
+				return false;
+
+			}
+			var optionId = radioCtrl.option.optionComponent[nsPrefix + 'ComponentProductId__c'];
+			return ConfigureService.excludedOptionIds.indexOf(optionId) > -1;
+
 		};
+
+		radioCtrl.hasChildren = function() {
+			var optionsOrAttrs = radioCtrl.option.lineItem.hasOptions() || radioCtrl.option.lineItem.hasAttrs();
+			return (optionsOrAttrs && 
+							radioCtrl.option.isSelected() && 
+							radioCtrl.nextLevel() < 4);
+		};
+		
+		radioCtrl.showConfigureIcon = function() {
+			var optionsOrAttrs = radioCtrl.option.lineItem.hasOptions() || radioCtrl.option.lineItem.hasAttrs();
+			return (showTabView && optionsOrAttrs && radioCtrl.option.isSelected());
+			
+		};
+
 		radioCtrl.getLevel = function() {
 			return parseInt(radioCtrl.level);
 		};
@@ -60,13 +84,11 @@
 			var compiler, newElement;
 			newElement = angular.element(document.createElement('option-groups'));
 			newElement.attr('level', "" + (scope.radioCtrl.nextLevel()));
-			newElement.attr('line-item', 'radioCtrl.option.optionLine');
+			newElement.attr('line-item', 'radioCtrl.option.lineItem');
 			compiler = $compile(newElement);
-			return compiler(scope, (function(_this) {
-				return function(cloned, scope) {
-					return element.append(cloned);
-				};
-			})(this));
+			return compiler(scope, function(cloned, scope) {
+				return element.append(cloned);
+			});
 		}
 		function removeSubGroup(element) {
 			return element.find('option-groups').remove();
@@ -104,6 +126,5 @@
 		};
 
 	}
-
 
 })();

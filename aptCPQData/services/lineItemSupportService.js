@@ -25,32 +25,62 @@
 		var exclusionPatterns = {
 			"always": /^(\$\$|\@\@)/,
 			"pricesOnly": /(PriceLists__r|PriceListItemId__r)$/,
-			"txnOnly": /(PriceListItemId__c|ProductId__r|OptionId__r)$/
+			"txnOnly": /(PriceListItemId__c|ProductId__r|OptionId__r|LocationId__r)$/
 		};
 
-		//Helpful string constants
+		//Fields that should always be included when submitting a line item SO
+		service.lineItemSOFields = [
+			"Id",
+			nsPrefix + "ConfigurationId__c",
+			nsPrefix + "HasAttributes__c",
+			nsPrefix + "HasDefaults__c",
+			nsPrefix + "HasOptions__c",
+			nsPrefix + "ItemSequence__c",
+			nsPrefix + "LineType__c",
+			nsPrefix + "LineNumber__c",
+			nsPrefix + "ParentBundleNumber__c",
+			nsPrefix + "PricingStatus__c",
+			nsPrefix + "PrimaryLineNumber__c",
+			nsPrefix + "ProductId__c",
+			nsPrefix + "PriceListId__c",
+			nsPrefix + "ClassificationId__c"
+
+		];
+
+		/** Line Item string constants*/
+		//Line action
 		service.LINE_ACTION_NONE = 'none';
 		service.LINE_ACTION_ADD = 'add';
 		service.LINE_ACTION_UPDATE = 'update';
 		service.LINE_ACTION_DELETE = 'delete';
+		service.PRICING_STATUS_PENDING = 'Pending';
+		//Config status
+		service.CONFIG_STATUS_NA = 'NA';
+		service.CONFIG_STATUS_DEFAULT_PENDING = 'Default Pending';
+		service.CONFIG_STATUS_PENDING = 'Pending';
+		service.CONFIG_STATUS_COMPLETE = 'Complete';
+	
 
 		//Attach public Methods
-		service.newLineItemSO = newLineItemSO;
+		service.clearLineItemSO = clearLineItemSO;
+		service.cloneDeep = cloneDeep;
+		service.compareOptionLineToComponent = compareOptionLineToComponent;
+		service.deselectLineItem = deselectLineItem;
+		service.getIsFieldExcluded = getIsFieldExcluded;
+		service.getIsItemDetailed = getIsItemDetailed;
+		service.getIsPricePending = getIsPricePending;
+		service.getLineItemSO = getLineItemSO;
+		service.getFullyQualifiedName = getFullyQualifiedName;
+		service.getPrimaryLineNumber = getPrimaryLineNumber;
+		service.markPricingPending = markPricingPending;
+		service.newLineItemForAssetActions = newLineItemForAssetActions;
 		service.newLineItemForProduct = newLineItemForProduct;
 		service.newLineItemsFromClone = newLineItemsFromClone;
+		service.newLineItemSO = newLineItemSO;
 		service.newOptionLineItemForComponent = newOptionLineItemForComponent;
-		service.newLineItemForAssetActions = newLineItemForAssetActions;
-		service.newLineItemSet = newLineItemSet;
-		service.getIsPricePending = getIsPricePending;
-		service.getIsItemDetailed = getIsItemDetailed;
-		service.cloneDeep = cloneDeep;
-		service.mergeOptionLines = mergeOptionLines;
-		service.setLineAction = setLineAction;
 		service.selectLineItem = selectLineItem;
-		service.deselectLineItem = deselectLineItem;
-		service.getLineItemSO = getLineItemSO;
-		service.compareOptionLineToComponent = compareOptionLineToComponent;
-		service.markPricingPending = markPricingPending;
+		service.setLineAction = setLineAction;
+
 
 		/** Method definitions */
 
@@ -70,7 +100,6 @@
 
 		}
 
-
 		/** Return the simplest, empty SO. */
 		function newLineItemSO() {
 			var newSO = {
@@ -81,21 +110,22 @@
 
 			return ConfigurationDataService.requestBasePromise.then(function(requestBase){
 				newSO[nsPrefix + "ConfigurationId__c"] = requestBase.cartId;
+				return newSO;
 				//Loop to allow defaulting based on display columns.
 				//TODO: Determine if this is necessary and what to do with defaults
-				return ConfigurationDataService.getDisplayColumns().then(function (result) {
-					var displayColumns = result.cartLineItemColumns;
-					for (var colIndex = 0, colLength = displayColumns.length; colIndex < colLength; colIndex += 1) {
-						nextFieldName = displayColumns[colIndex].FieldName;
-						if (displayColumns[colIndex].FieldType !== 'REFERENCE') {
-							newSO[nextFieldName] = undefined;
+				// return ConfigurationDataService.getDisplayColumns().then(function (result) {
+				// 	var displayColumns = result.cartLineItemColumns;
+				// 	for (var colIndex = 0, colLength = displayColumns.length; colIndex < colLength; colIndex += 1) {
+				// 		nextFieldName = displayColumns[colIndex].FieldName;
+				// 		if (displayColumns[colIndex].FieldType !== 'REFERENCE') {
+				// 			newSO[nextFieldName] = undefined;
 
-						}
+				// 		}
 
-					}
-					return newSO;
+				// 	}
+				// 	return newSO;
 
-				});
+				// });
 				
 			});
 
@@ -126,7 +156,7 @@
 				var lineItemSO = {};
 				//lineItemSO[nsPrefix + 'AssetLineItemId__c'] = lineItem[nsPrefix + 'AssetLineItemId__c'];
 				lineItemSO[nsPrefix + 'AssetLineItemId__c'] = (lineItem[nsPrefix + 'AssetLineItemId__c']) ? 
-					lineItem[nsPrefix + 'AssetLineItemId__c'] : lineItem.Id;
+				lineItem[nsPrefix + 'AssetLineItemId__c'] : lineItem.Id;
 				lineItemSO[nsPrefix + 'LineType__c'] = lineItem[nsPrefix + 'LineType__c'];
 				lineItemSO[nsPrefix + 'Quantity__c'] = lineItem[nsPrefix + 'Quantity__c'];
 				lineItemSO[nsPrefix + 'EndDate__c'] = lineItem[nsPrefix + 'EndDate__c'];
@@ -139,6 +169,7 @@
 					"lineItemSO": lineItemSO,
 					"txnPrimaryLineNumber": txnPLN,
 					"sequence": txnPLN,
+					"isSelected": true,
 					"chargeLines": [
 						{
 							// "txnPrimaryLineNumber": txnPLN,
@@ -276,7 +307,7 @@
 					if (isPending === false) {
 						var sObject = chargeLineDO.lineItemSO;
 						var pricingField = nsPrefix + 'PricingStatus__c';
-						isPending = sObject && (sObject[pricingField] === 'Pending' || sObject[pricingField] === null);
+						isPending = sObject && (sObject[pricingField] === service.PRICING_STATUS_PENDING || sObject[pricingField] === null);
 					}
 				});
 				if (lineItemDO.optionLines) {
@@ -298,7 +329,7 @@
 		function markPricingPending(lineItems) {
 			_.each(lineItems, function(lineItem) {
 				_.each(lineItem.chargeLines, function(chargeLine) {
-					chargeLine.lineItemSO[nsPrefix + 'PricingStatus__c'] = 'Pending';
+					chargeLine.lineItemSO[nsPrefix + 'PricingStatus__c'] = service.PRICING_STATUS_PENDING;
 					
 				});
 			});
@@ -329,6 +360,15 @@
 			}
 			return false;
 			
+		}
+
+		function getIsFieldExcluded(fieldName) {
+			var mainExcludeTest = exclusionPatterns.always.test(fieldName);
+			var pricesOnlyTest = exclusionPatterns.pricesOnly.test(fieldName);
+			var txnOnlyTest = exclusionPatterns.txnOnly.test(fieldName);
+			var shouldExclude = mainExcludeTest || pricesOnlyTest || txnOnlyTest;
+			return shouldExclude;
+
 		}
 
 		/**
@@ -391,6 +431,23 @@
 
 			/** Main callback for editing line item structures during clone. */
 			function lineItemDeepCallback(value, key, srcObject) {
+				if (key === 'chargeLines') {
+					//Only clone the the primary line.
+					var chargeClones = [];
+					var primaryLine = value ? value[0] : undefined;
+					if (primaryLine) {
+						chargeClones.push(_.cloneDeep(primaryLine, lineItemDeepCallback));
+
+					}
+					return chargeClones;
+
+				} else if (key === 'optionLines') {
+					//Only include option lines which are selected
+					var optionsToClone = _.filter(value, 'isSelected');
+					return _.cloneDeep(optionsToClone, lineItemDeepCallback);
+
+				}
+				var lisoToClone;
 				//Always remove exclude certain properties from objects
 				if (_.isObject(value)) {
 					//Test for properties which should not be cloned.
@@ -402,23 +459,27 @@
 					});
 					if (isAnyPropertyExcluded) {
 						if (key === 'lineItemSO') {
-							//Special clone for line item so
-							return _.cloneDeep(withoutExcludes, lineItemSOCallback);
+							lisoToClone = withoutExcludes;
 
+						} else {
+							return _.cloneDeep(withoutExcludes, lineItemDeepCallback);
+							
 						}
-						return _.cloneDeep(withoutExcludes, lineItemDeepCallback);
 						
 					}
 
 				}
-				//If property exclusion wasn't necessary, continue
 				if (key === 'lineItemSO') {
-					//Special clone for line item so
-					var copiedLine = _.cloneDeep(value, lineItemSOCallback);
+					lisoToClone = lisoToClone ? lisoToClone : value;
+					//Special clone for line item SO
+					var copiedLine = _.cloneDeep(lisoToClone, lineItemSOCallback);
+					//Identify source for the cloned SO
 					copiedLine[nsPrefix + 'CopySourceNumber__c'] = value[nsPrefix + 'PrimaryLineNumber__c'];
+					copiedLine[nsPrefix + 'CopySourceBundleNumber__c'] = value[nsPrefix + 'ParentBundleNumber__c'];
+					copiedLine[nsPrefix + 'CopySourceLineNumber__c'] = value[nsPrefix + 'LineNumber__c'];
 					
 					return copiedLine;
-					
+
 				} else if (key === 'txnPrimaryLineNumber') {
 					return getNextTxnPrimaryLineNumber();
 
@@ -575,6 +636,22 @@
 			return undefined;
 		}
 
+		function getPrimaryLineNumber(lineItemDO) {
+			var primarySO = getLineItemSO(lineItemDO);
+			return primarySO ? primarySO[nsPrefix + 'PrimaryLineNumber__c'] : undefined;
+			
+		}
+
+		function getFullyQualifiedName(fieldStr) {
+			//Return immediately for standard field(s)
+			if (fieldStr === 'Id') {
+				return fieldStr;
+
+			}
+			return fieldStr.indexOf(nsPrefix) === 0 ? fieldStr : nsPrefix + fieldStr;
+
+		}
+
 		function compareOptionLineToComponent(optionDO, optionComponet) {
 			var optionSO = getLineItemSO(optionDO);
 			return optionSO[nsPrefix + 'ProductOptionId__c'] == optionComponet.Id;
@@ -620,7 +697,7 @@
 
 			}
 			lineItemSO.Id = null;
-			lineItemSO[nsPrefix + "PricingStatus__c"] = null;
+			lineItemSO[nsPrefix + "PricingStatus__c"] = service.PRICING_STATUS_PENDING;
 			//Reset attr value id to configuration id to indicate new value is needed
 			if (lineItemSO[nsPrefix + "HasAttributes__c"]) {
 				lineItemSO[nsPrefix + 'AttributeValueId__c'] = lineItemSO[nsPrefix + 'ConfigurationId__c'];
@@ -630,389 +707,6 @@
 				
 				}
 				
-			}
-
-		}
-
-		/**
-		 * Wrapper for merging line items with lodash.merge. Mainly used for mapping
-		 * 	option line item DOs to each other by their option component
-		 * 	(otherwise, merge would be handled by array index ). If the 
-		 * 	callback returned undefined, lodash uses its own merge logic
-		 * 	for different object/primitive types.
-		 * 	
-		 */
-		function mergeLineItems(targetLine, sourceLine, clearUnmatched) {
-			return _.merge(targetLine, sourceLine, function (destVal, sourceVal, property, destObj, sourceObj) {
-				if (sourceVal === null) {
-					return destVal;
-
-				}
-				//Temporary fix to prevent server from lying and saying line item doesn't have options.
-				if (property === nsPrefix + 'HasOptions__c' || property === nsPrefix + 'HasAttributes__c') {
-					return destVal || sourceVal;
-
-				}
-				if (property === "isSelected") {
-					var isDirty = destObj.hasOwnProperty('@@dirty') && destObj['@@dirty'] === true;
-					//If the client-side hasn't tried to change the selection of the option, use the server selection.
-					if (!isDirty) {
-						return sourceVal;
-
-					}
-					//Otherwise, make sure client selection is preserved.
-					return destVal;
-
-				}
-				//destVal and sourceVal should be arrays of option DO's
-				if (property === "optionLines") {
-					return mergeOptionLines(destVal, sourceVal, clearUnmatched);
-
-				}
-				//Strip off trailing charge lines, then lodash will merge the remaining.
-				if (property === "chargeLines" && angular.isArray(destVal)) {
-					if (!sourceVal || sourceVal.length === 0 && destVal.length > 0) {
-						destVal.length = 1;
-						clearLineItemSO(destVal[0].lineItemSO);
-
-					} else {
-						destVal.length = sourceVal.length;
-
-					}
-
-				}
-				//If neither of those cases, defer to lodash merge.
-				return undefined;
-
-			});
-
-		}
-
-		/**
-		 * Function devoted to merging two arrays of option line item DOs. The 
-		 * 	first array is used as the target for the merge (it is mutated).
-		 * 	If the target array begins undefined, the source array is returned.
-		 * 	
-		 * @param  {Array} targetArr       	Target array of options
-		 * @param  {Array} sourceArr      	Source array of option
-		 * @param  {Boolean} clearUnmatched If truthy, clearLineItemIds will be 
-		 *                                  called on each option line in the target
-		 *                                  that did not have match in the source.
-		 * @return {Array}                	The resulting target arr.
-		 */
-		function mergeOptionLines(targetArr, sourceArr, clearUnmatched) {
-			if (!targetArr) {
-				return sourceArr ? sourceArr : [];
-
-			} 
-			//Group the existing selected options by their componenet Id
-			//TODO: check if that match fails and use TXNPLN.
-			var groupedOptions = _.groupBy(targetArr, function (optionDO) {
-				var optionSO = getLineItemSO(optionDO);
-				return optionSO[nsPrefix + 'ProductOptionId__c'];
-
-			});
-			//For each option from the server, merge it with an existing line item
-			//	if a match exists, otherwise push it into the local array.
-			_.forEach(sourceArr, function (secondOptionDO) {
-				var optionSO = getLineItemSO(secondOptionDO);
-				var componentId = optionSO[nsPrefix + 'ProductOptionId__c'];
-				var matchingOptionsArr = groupedOptions[componentId];
-				if (matchingOptionsArr && matchingOptionsArr.length > 0) {
-					//Merge DOs that having matching component ids
-					var firstOptionDO = matchingOptionsArr[0];
-					mergeLineItems(firstOptionDO, secondOptionDO, clearUnmatched);
-					//Remove match from map so that only unmatched remain
-					delete groupedOptions[componentId];
-
-				} else {
-					//No match from second, so this object is new
-					targetArr.push(secondOptionDO);
-					
-				}
-
-			});
-			//For each option that did have a corresponding object come back
-			// from the server, ensure it does not have old id values.
-			if (clearUnmatched) {
-				_.forOwn(groupedOptions, function (unmatchedArr, componentId) {
-					_.forEach(unmatchedArr, clearLineItemIds);
-				});				
-			}
-			return targetArr;
-
-		}
-
-		/**
-		 * Constructor for making a set specifically for line items. This lets
-		 * 	us try out different ways of hashing and merging line items to keep
-		 * 	the DO's on the client side in sync with the server responses.
-		 * 	
-		 * @param {array} initItems [items to add to the set immediately.]
-		 */
-		function newLineItemSet(initItems) {
-			var txnPrimaryLineNumberMap = {};
-			return new ItemSet(initItems, lineItemHashFunction, lineItemMergeFunction, lineItemComparatorFunction);
-
-			function getPrimaryLineNumber(item) {
-				var primaryLine;
-				if (item && item.chargeLines) {
-					primaryLine = item.chargeLines[0];
-					if (primaryLine && primaryLine.lineItemSO) {
-						return primaryLine.lineItemSO[nsPrefix + 'PrimaryLineNumber__c'];
-					}
-				}
-				return undefined;
-
-			}
-			/**
-			 * Maintain a consistent hash that identifies each line item. To do this,
-			 * 		a mapping between the line item's primary line number and it's txn
-			 * 		primary line number is maintained.
-			 * 		
-			 * @param  {[type]} lineItemDO item
-			 * @return {number}            hash value
-			 */
-			function lineItemHashFunction(lineItemDO) {
-				var txnPLN = lineItemDO.txnPrimaryLineNumber;
-				return txnPrimaryLineNumberMap[txnPLN] || txnPLN;
-
-			}
-
-			/**
-			 * Used for merging data from the server with the version stored 
-			 * 	locally for use by the view. The object firstItem is mutated.
-			 * 	Return the primary line number of the item if that value has been
-			 * 	updated by the merge. Otherwise returns undefined. This is used
-			 * 	by the line item set to determine whether to rehash by a new PLN.
-			 * 	
-			 * @param  {LineItemDO} firstItem  Item to merge onto (i.e. view copy)
-			 * @param  {LineItemDO} secondItem Item to merge from (i.e. sever copy)
-			 * @return {Number}								 Primary line number of item, or undefined.
-			 */
-			function lineItemMergeFunction(firstItem, secondItem) {
-				// return angular.extend(firstItem, secondItem);
-				mergeLineItems(firstItem, secondItem, true);
-				var actualPLN = getPrimaryLineNumber(firstItem);
-				if (firstItem.txnPrimaryLineNumber != actualPLN) {
-					txnPrimaryLineNumberMap[firstItem.txnPrimaryLineNumber] = actualPLN;
-					firstItem.txnPrimaryLineNumber = actualPLN;
-					return actualPLN;
-					
-				}
-				return firstItem.txnPrimaryLineNumber;
-
-			}
-
-			function lineItemComparatorFunction(firstItem, secondItem) {
-				function getSequence(item) {
-					var sequence;
-					if (item && item.chargeLines && item.chargeLines[0] && item.chargeLines[0].lineItemSO) {
-						sequence = item.chargeLines[0].lineItemSO[nsPrefix + 'LineSequence__c'];
-
-					}
-					sequence = Number(sequence || item.txnPrimaryLineNumber || 0);
-					return sequence;
-
-				}
-				var firstSequence = getSequence(firstItem);
-				var secondSequence = getSequence(secondItem);
-				return firstSequence - secondSequence;
-
-			}
-
-		}
-
-		/**
-		 * Set used for stashing various types of things by a hash value.
-		 * Used with lineItemHashFunction to save line items by their Id.
-		 * Keeping this general for now so that it can be moved out to 
-		 * 	a utility service.
-		 * 
-		 */
-		function ItemSet(initItems, customHash, customMerge, customCompare) {
-			var items = new Object(null);
-			var itemSet = this;
-			var hash = defaultHash;
-			var merge = defaultMerge;
-			var compare;
-			
-			itemSet.size = 0;
-			itemSet.hasItem = hasItem;
-			itemSet.getItem = getItem;
-			itemSet.getAllItems = getAllItems;
-			itemSet.addItem = addItem;
-			itemSet.addAllItems = addAllItems;
-			itemSet.mergeItem = mergeItem;
-			itemSet.mergeAllItems = mergeAllItems;
-			itemSet.deleteItem = deleteItem;
-
-			init();
-
-			function init() {
-				if (typeof customHash === 'function') {
-					hash = customHash;
-
-				}
-				if (typeof customMerge === 'function') {
-					merge = customMerge;
-
-				}
-				if (typeof customCompare === 'function') {
-					compare = customCompare;
-
-				}
-				addAllItems(initItems);
-				
-			}
-
-			function defaultHash(item) {
-				var hashVal;
-				if (typeof item === 'object') {
-					hashVal = JSON.stringify(item);
-
-				} else if (typeof item === 'function') {
-					hashVal = item.prototype.constructor.toString();
-
-				} else {
-					hashVal = '' + item;
-
-				} 
-				return hashVal;
-
-			}
-
-			function isValidKey(potentialKey) {
-				var keyType = typeof potentialKey;
-				return keyType === 'string' || keyType === 'number';
-
-			}
-
-			function defaultMerge(firstItem, secondItem) {
-				angular.extend(firstItem, secondItem);
-
-			}
-
-			function hasItem(item) {
-				var itemId  = hash(item);
-				return !!(items[itemId]);
-
-			}
-			function getItem(item) {
-				var itemId  = hash(item);
-				return items[itemId];
-
-			}
-			function addItem(item) {
-				var itemId;
-				if (item) {
-					itemId = hash(item);
-
-				}
-				if (isValidKey(itemId)) {
-					if (!items[itemId]) {
-						itemSet.size += 1;
-
-					}
-					items[itemId] = item;
-					
-				} 
-				return itemSet;
-
-			}
-			function addAllItems(allItems) {
-				if (allItems) {
-					for (var i = 0; i < allItems.length; i += 1) {
-						addItem(allItems[i]);
-
-					}
-
-				}
-				return itemSet;
-
-			}
-			/**
-			 * Merge an item into the using the customizable merge function. 
-			 * If the item is not hashable using the customizable hash function, 
-			 * 	log the error and do nothing.
-			 * If the there is not existing match in the set, simply add the item.
-			 * If the merge function returns a value, newItemId, that is a valid key, 
-			 * 	delete the existing mapping and create a new mapping using newItemId.
-			 * 	
-			 * @param  {object} item 	hashable and mergable.
-			 * @return      	this set.
-			 */
-			function mergeItem(item) {
-				var itemId;
-				if (item) {
-					itemId = hash(item);
-
-				}
-				if (isValidKey(itemId)) {
-					var existing = items[itemId];
-					if (!existing) {
-						items[itemId] = item;
-						itemSet.size += 1;
-
-					} else {
-						merge(existing, item);
-						var newItemId = hash(existing);
-						if (isValidKey(newItemId) && newItemId != itemId) {
-							$log.debug('Merge rehash: ', newItemId, existing);
-							delete items[itemId];
-							// What if there is already a value at items[newItemId]?
-							items[newItemId] = existing;
-
-						}
-						
-					}
-					
-				} else {
-					$log.error('Failed to hash', item);
-
-				}
-				return itemSet;
-
-			}
-			function mergeAllItems(allItems) {
-				if (allItems) {
-					for (var i = 0; i < allItems.length; i += 1) {
-						mergeItem(allItems[i]);
-
-					}
-
-				}
-				return itemSet;
-
-			}	
-			function deleteItem(item) {
-				var itemId;
-				if (item) {
-					itemId = hash(item);
-
-				}
-				if (isValidKey(itemId) && items[itemId] && delete items[itemId]) {
-					itemSet.size --;
-					return true;
-					
-				} 
-				return false;
-
-			}
-			function getAllItems() {
-				var nextItem;
-				var allItems = [];
-				for (var key in items) {
-					nextItem = items[key];
-					if (items.hasOwnProperty(key) && nextItem) {
-						allItems.push(nextItem);
-						
-					}
-
-				}
-				allItems.sort(compare);
-				return allItems;
-
 			}
 
 		}

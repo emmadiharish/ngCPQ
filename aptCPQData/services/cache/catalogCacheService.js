@@ -1,16 +1,22 @@
+/**
+ * Service: CatalogCache
+ * 	Keeps collections for categories
+ */
 ;(function() {
-	angular.module('aptCPQData')
-		.service('CatalogCache', CatalogCache); 
+	'use strict';
+	
+	angular.module('aptCPQData').service('CatalogCache', CatalogCache); 
 
-	CatalogCache.$inject = ['$log'];
+	CatalogCache.$inject = ['$log', 'lodash', 'systemConstants'];
 
 	/**
 	 * Structure for storing and updating catalog data
 	 */
-	function CatalogCache($log) {
+	function CatalogCache($log, _, systemConstants) {
 		var cache = this;
 		var topCategories, idToCategoryMap, leafLineageMap;
 		var idToProductMap, categoryToProductsMap, categoryToProductFiltersMap;
+		var categoryLeafNodesMap = {};
 
 		cache.initializeCategories = initializeCategories;
 		cache.putProducts = putProducts;
@@ -20,9 +26,10 @@
 		cache.getAncestors = getAncestors;
 		cache.getProductById = getProductById;
 		cache.getProductsForCategory = getProductsForCategory;
-		cache.getProductsForCategories = getProductsForCategories;
+		//cache.getProductsForCategories = getProductsForCategories;
 		cache.putProductFiltersForCategory = putProductFiltersForCategory;
 		cache.getProductFiltersForCategory = getProductFiltersForCategory; 
+		cache.getLeafNodesForCategory = getLeafNodesForCategory;
 
 		//Initialize
 		init();
@@ -72,54 +79,129 @@
 			while(categoryStack.length > 0) {
 				currentCategory = categoryStack.pop();
 				currentId = currentCategory.nodeId;
-				currentChildren = currentCategory.childCategories;
-				idToCategoryMap[currentId] = currentCategory;
-				//Can check for leaf status by looking at chilren array or "leaf" field
-				//if (currentChildren && currentChildren.length > 0) {
-				if (lineageStack.length > currentCategory.nodeLevel) {
+				// Check for invalid category object
+				if (!currentId) {
 					lineageStack.pop();
 
 				}
+				currentChildren = currentCategory.childCategories;
+				idToCategoryMap[currentId] = currentCategory;
 				//Copy lineage array
 				lineageArray = lineageStack.slice();
 				leafLineageMap[currentId] = lineageArray;
-				if (!currentCategory.leaf) {
+				if (currentChildren && currentChildren.length) {
+					categoryStack.push({}); // Use empty object to represent gap between parent categories
 					lineageStack.push(currentId);
 					Array.prototype.push.apply(categoryStack, currentChildren);
 
 				} 
 
 			}
+
+			//create parent and leaf node map, uses idToCategoryMap
+			setCategoryLeafNodes(topCategories);
+
 			//Set the cache to be valid
 			cache.isValid = true;
 
 		}
+		
+		/**
+		 * populates parent node leaf node map
+		 */
+		function setCategoryLeafNodes(categories) {
+			_.forEach(categories, function(category, key){
+				if (category.leaf == false) {
+					setCategoryLeafNodes(category.childCategories);
+					
+				} else {
+					var parentId = category.parentId;
+					if (angular.isDefined(parentId) && parentId !== null) {	
+						categoryLeafNodesMap[parentId] = (categoryLeafNodesMap[parentId] || []);
+						categoryLeafNodesMap[parentId].push(category.nodeId);
+					}
 
+				}
+				
+			});
+			
+			setParentLeafNodes(Object.keys(categoryLeafNodesMap));
+			
+		}
+		
+		/**
+		 * populates parent node leaf node map
+		 */
+		function setParentLeafNodes(parentCategoryIds) {
+			var grandParentIds = {}; 
+			_.forEach(parentCategoryIds, function(categoryId, index) {
+				var category = idToCategoryMap[categoryId];
+				var parentId = category.parentId;
+				if (angular.isDefined(parentId) && parentId !== null) {	
+					categoryLeafNodesMap[parentId] = (categoryLeafNodesMap[parentId] || []);
+					categoryLeafNodesMap[parentId] = categoryLeafNodesMap[parentId].concat(categoryLeafNodesMap[category.nodeId] || []);
+					grandParentIds[parentId] = true;
+					
+				}
+			});
+			
+			var grandParentIdList = Object.keys(grandParentIds);
+			if (grandParentIdList.length > 0) {
+				setParentLeafNodes(grandParentIdList);
+			}
+				
+		}
+		
+		/**
+		 * returns leaf node for category
+		 */
+		function getLeafNodesForCategory(categoryId) {
+			var leafNodes = categoryLeafNodesMap[categoryId];
+			if (leafNodes && leafNodes.length == 0) {
+				if (idToCategoryMap[categoryId].leaf) {
+					return [].concat(categoryId);
+				} //else throw error
+				
+			}
+			return leafNodes;
+			
+		}
+
+		
 		function getCategories() {
 			if (!cache.isValid) {
 				return null;
 
 			}
-			return topCategories;
+			//hide single top category
+			if (topCategories.length === 1 
+					&& topCategories[0].leaf === false 
+					&& systemConstants.customSettings.catalogPageSettings.HideSingleTopCategory === true) {
+				return topCategories[0].childCategories;
+				
+			} else {
+				return topCategories;
+				
+			}
 
 		}
 
-		function getCategoryById(catId) {
-			if (!catId || !cache.isValid) {
+		function getCategoryById(categoryId) {
+			if (!categoryId || !cache.isValid) {
 				return null;
 
 			}
-			return idToCategoryMap[catId];
+			return idToCategoryMap[categoryId];
 
 		}
 
 		/** Do lookup of lineage array */
-		function getAncestors(catId) {
-			if (!cache.isValid || !catId) {
+		function getAncestors(categoryId) {
+			if (!cache.isValid || !categoryId) {
 				return [];
 				
 			}
-			var ancestorIds = leafLineageMap[catId];
+			var ancestorIds = leafLineageMap[categoryId];
 			if (!ancestorIds) {
 				return [];
 				
@@ -129,12 +211,20 @@
 			for (var idIndex = 0, idLength = ancestorIds.length; idIndex < idLength; idIndex ++) {
 				nextCat = idToCategoryMap[ancestorIds[idIndex]];
 				if (nextCat) {
-					ancestorCats.push(nextCat);
+					if (idIndex === 0 && topCategories.length === 1  
+							&& nextCat.leaf === false 
+							&& systemConstants.customSettings.catalogPageSettings.HideSingleTopCategory === true) {
+						//$log.debug('hiding single top category', nextCat.label);
+						
+					} else {	
+						ancestorCats.push(nextCat);
+						
+					}
 
 				}
 
 			}
-			ancestorCats.push(idToCategoryMap[catId]);
+			ancestorCats.push(idToCategoryMap[categoryId]);
 			return ancestorCats;
 
 		}
@@ -151,22 +241,22 @@
 				return {};
 
 			}
-			var ancestorCatIds = {};
+			var ancestorCategoryIds = {};
 			var nextCat;
 			for (var idIndex = 0, idLength = leafIds.length; idIndex < idLength; idIndex ++) {
 				var nextLeafId = leafIds[idIndex];
-				ancestorCatIds[nextLeafId] = true;
+				ancestorCategoryIds[nextLeafId] = true;
 				var ancestors = leafLineageMap[nextLeafId];
 				if (angular.isDefined(ancestors)) {
 					for (var ancestorIndex = 0, ancestorLength = ancestors.length; ancestorIndex < ancestorLength; ancestorIndex ++) {
-						ancestorCatIds[ancestors[ancestorIndex]] = true;
+						ancestorCategoryIds[ancestors[ancestorIndex]] = true;
 
 					}
 				
 				}
 
 			}
-			return ancestorCatIds;
+			return ancestorCategoryIds;
 
 		}
 
@@ -191,7 +281,7 @@
 					idToProductMap[nextProduct.productSO.Id] = nextProduct;
 					for (var catIndex = 0, catLength = nextProduct.categoryIds.length; catIndex < catLength; catIndex ++) {
 						if (!categoryToProductsMap[nextProduct.categoryIds[catIndex]]) {
-							categoryToProductsMap[nextProduct.categoryIds[catIndex]] = [];
+							categoryToProductsMap[nextProduct.categoryIds[catIndex]] = categoryToProductsMap[nextProduct.categoryIds[catIndex]] || [];
 
 						}
 						categoryToProductsMap[nextProduct.categoryIds[catIndex]].push(nextProduct.productSO.Id);
@@ -236,11 +326,18 @@
 				return null;
 
 			}
-			var catProducts = traverseCategoriesForProductIds(catObject);
-			if (!catProducts) {
-				return null;
-
+			
+			var catProducts = []; 
+			if (catObject.leaf) {
+				catProducts = catProducts.concat(categoryToProductsMap[categoryId] || []);
+				
+			} else {
+				_.forEach(categoryLeafNodesMap[categoryId], function(leafCategoryId, index){
+					catProducts = catProducts.concat(categoryToProductsMap[leafCategoryId] || []);
+				});
+				
 			}
+			
 			var foundProductIds = {};
 			for (var prodIndex = 0, prodLength = catProducts.length; prodIndex < prodLength; prodIndex ++) {
 				var productId = catProducts[prodIndex];
@@ -249,7 +346,6 @@
 					foundProductList.push(idToProductMap[productId]);
 					
 				}
-
 
 			}
 			return foundProductList;
@@ -331,47 +427,9 @@
 			
 			}
 			
-			return angular.copy(catFilters);
-
-		}
-
-
-
-		/** Should this be handled in catalog services instead? */
-		function getProductsForCategories(categoryIds) {
-			if (!cache.isValid) {
-				return null;
-
-			}
-			if (!categoryIds || !categoryIds.length) {
-				return [];
-				
-			}
-			var foundProductIds = {};
-			var foundProductList = [];
-			var categoriesWithoutProducts = [];
-			for (var catIndex = 0, catLength = categoryIds.length; catIndex < catLength; catIndex ++) {
-				var categoryId = categoryIds[catIndex];
-				if (categoryToProductsMap[categoryId]) {
-					var catProducts = categoryToProductsMap[categoryId];
-					for (var prodIndex = 0, prodLength = catProducts.length; prodIndex < prodLength; prodIndex ++) {
-						var productId = catProducts[prodIndex];
-						if (!foundProductIds[productId]) {
-							foundProductIds[productId] = true;
-							foundProductList.push(idToProductMap[productId]);
-
-						}
-
-					}
-
-				} else {
-					categoriesWithoutProducts.push(categoryId);
-
-				}
-
-			}
-
-			return foundProductList;
+			//return angular.copy(catFilters);
+			
+			return catFilters;
 
 		}
 

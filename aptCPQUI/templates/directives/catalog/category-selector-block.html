@@ -1,0 +1,25 @@
+<div class="block-choose-categories block">
+	<h2>{{catSelect.labels.BrowseCatalogTitle}}</h2>
+	<nav class="block-choose-categories__nav">
+		<div class="block-choose-categories__current">
+			{{catSelect.labels.ChooseCategory}}<i class="ss-dropdown"></i>
+		</div>
+		<ul class="block-choose-categories__list">
+			<li ng-show="currentCategory.nodeId"><a ui-sref="catalog">{{catSelect.labels.ViewAll}}</a></li>
+			<li ng-repeat="category in catSelect.categories">
+				<a ui-sref="category({term: '{{catSelect.searchTerm}}', categoryId: '{{category.nodeId}}' })">{{category.label}} 
+					<i ng-if="category.childCategories &amp;&amp; category.nodeLevel &lt; 1" class="ss-navigateright"></i>
+				</a>
+				<ul class="submenu first" ng-if="category.childCategories.length">
+					<li ng-repeat="category in category.childCategories" ng-include="'subTree'"></li>
+				</ul>
+			</li>
+		</ul>
+	</nav>
+</div>
+<script type="text/ng-template" id="subTree">
+	<a ui-sref="category({ categoryId: {{ 'category.nodeId' }} })">{{ category.label }}</a>
+  	<ul ng-if="category.childCategories &amp;&amp; category.nodeLevel &lt; 1" ng-show="category.childCategories.length" class="submenu">
+    	<li ng-repeat="category in category.childCategories" ng-include="'subTree'"></li>
+  	</ul>
+</script>

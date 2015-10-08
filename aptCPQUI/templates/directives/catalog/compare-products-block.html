@@ -1,0 +1,63 @@
+<div class="page-header">
+	<span class="ss-icon ss-columns"></span>
+	<h1> Compare Products </h1>
+	<a ui-sref="catalog"> Back to Catalog </a>
+</div>
+
+<div class="compare-product-block">
+	<div class="compare-product">
+
+		<div class="product-set">
+			<div class="product-row">
+				<div class="product"></div>
+				<div class="product product-img" ng-repeat="product in compareCtrl.compareProducts">
+					<img ng-if="compareCtrl.baseFileUrl && product.productSO[compareCtrl.nsPrefix + 'IconId__c']" ng-src="{{compareCtrl.baseFileUrl + product.productSO[compareCtrl.nsPrefix + 'IconId__c']}}"/>
+				</div>
+			</div>
+		</div> 
+
+		<div class="product-set">
+			<div class="product-row">
+				<div class="product"></div>
+				<div class="product product-title" ng-repeat="product in compareCtrl.compareProducts">
+					{{product.productSO.Name}} 
+				</div>
+			</div>
+		</div>
+
+		<div class="product-set">
+			<div class="product-row">
+				<div class="product"></div>
+				<div class="product product-title" ng-repeat="product in compareCtrl.compareProducts">
+					<button ng-hide="compareCtrl.isMustConfigure(product) || compareCtrl.isProductDisabled(product) || compareCtrl.isSoldAsOption(product)" 
+					        class="button secondary add-to-cart" 
+					        ng-click="compareCtrl.addToCart(product)">
+						<span ng-show="!compareCtrl.inCartProductIds[product.productSO.Id]">
+              				{{compareCtrl.labels.AddToCart}}
+			            </span>
+			            <span ng-show="compareCtrl.inCartProductIds[product.productSO.Id]">
+			              	{{compareCtrl.labels.AddAnother}}
+			            </span>	
+					</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div ng-if="compareCtrl.totalFeature==0" class="no-feature">
+			No FeatureSet available to compare this {{ compareCtrl.getTotalProducts() }} Products.
+		</div>
+
+		<div ng-repeat="featureSet in compareCtrl.getFeatureSet()" ng-show="compareCtrl.isFeatureSetAdded('{{featureSet[compareCtrl.nsPrefix + 'Id']}}')">
+			<div class="featureset-title">{{featureSet[compareCtrl.nsPrefix + 'Name']}}</div>
+			<div class="feature-set">
+				<div ng-repeat="feature in featureSet[compareCtrl.nsPrefix + 'Features__r']" class="feature-row">
+					<div class="feature feature-title">{{feature[compareCtrl.nsPrefix + 'Name']}}</div>
+					<div class="feature" ng-repeat="productId in compareCtrl.getCompareProductIds()">
+						{{compareCtrl.getFeatureValue(productId,feature[compareCtrl.nsPrefix + 'Id'])}}
+					</div>
+				</tr>
+			</div>
+		</div>
+	</div>
+</div>

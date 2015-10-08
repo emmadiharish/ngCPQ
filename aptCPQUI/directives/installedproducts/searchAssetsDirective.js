@@ -28,7 +28,7 @@
                 });
             },
 
-            templateUrl: systemConstants.baseUrl + '/templates/directives/search-assets-block.html'
+            templateUrl: systemConstants.baseUrl + '/templates/directives/assets/search-assets-block.html'
         }
     };
 

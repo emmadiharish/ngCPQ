@@ -28,35 +28,39 @@
 				var filterInstance = filterData.assetFilterFields[key];
 				switch (filterInstance.FieldType) {
 					case "PICKLIST":
-						filterInstance.viewCollapse = false;
+						filterInstance.viewCollapse = true;
 
 						// add a 'selected' model attribute to each of the picklist items
 						filterInstance.pickListEntries.forEach( function(picklistItem) {
 							picklistItem.selected = false;
 							picklistItem.FieldName = filterInstance.FieldName;
 						});
-						iFilterList.push(filterInstance);
+						if (filterInstance.pickListEntries.length > 0) {
+							iFilterList.push(filterInstance);
+						}
 						break;
 					case "DATE":
-					  filterInstance.viewCollapse = false;
+					  filterInstance.viewCollapse = true;
 						filterInstance.dateValue = "";
 						iFilterList.push(filterInstance);
 						break;
 					case "STRING":
-					  filterInstance.viewCollapse = false;
+					  filterInstance.viewCollapse = true;
 					  filterInstance.stringValue = "";
 					  iFilterList.push(filterInstance);
 					  break;
 					case "REFERENCE":
 						if (filterInstance.FieldName === (ctrlRef.nsPrefix + "AccountId__c") || filterInstance.FieldName === (ctrlRef.nsPrefix + "LocationId__c")) {
-							filterInstance.viewCollapse = false;
+							filterInstance.viewCollapse = true;
 
 							// add a 'selected' model attribute to each of the picklist items
-							filterInstance.referenceObjects.forEach( function(picklistItem) {
+							filterInstance.referenceObjects.forEach(function (picklistItem) {
 								picklistItem.selected = false;
 								picklistItem.FieldName = filterInstance.FieldName;
 							});
-						iFilterList.push(filterInstance);
+							if (filterInstance.referenceObjects.length > 0) {
+								iFilterList.push(filterInstance);
+							}
 						} else {
 							$log.info("Unsupported Filter: " + filterInstance.FieldName);
 						}

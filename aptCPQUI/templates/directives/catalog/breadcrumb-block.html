@@ -1,0 +1,8 @@
+<div class="main-block__listing-trail">
+	<a ui-sref="catalog" class="main-block__listing-trail__item">{{crumb.labels.AllCategories}}</a> <i
+		class="ss-directright"></i> <a
+		ui-sref="category({ categoryId: '{{breadcrumb.nodeId}}' })"
+		ng-repeat="breadcrumb in crumb.trail">{{breadcrumb.label}} <i
+		class="ss-directright"></i></a> <span
+		class="main-block__listing-trail__item is--active">{{crumb.currentCategory.label}}</span>
+</div>

@@ -1,4 +1,4 @@
-;(function() {
+ ;(function() {
 	angular.module('aptBase')
 		.filter('aptNumberToCurrency', numberToCurrencyFilter);
 
@@ -21,6 +21,9 @@
 				return input;
 
 			}
+			//Handle negative value
+			var isNegative = inputAsNumber < 0;
+			inputAsNumber *= (1 - 2*isNegative);
 			precision = currencySettings.precision || 2;
 			//Use toFixed to get string representation with correct padding & rounding
 			var inputAsFixed = inputAsNumber.toFixed(precision);
@@ -57,6 +60,10 @@
 
 				}
 
+			}
+			if (isNegative) {
+				inputFormatted = '(' + inputFormatted + ')';
+				
 			}
 			return inputFormatted;
 

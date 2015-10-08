@@ -1,89 +1,53 @@
-(function() {
-	angular.module('aptCPQUI')
-		.service('OptionGroupModelService', OptionGroupModelService);
+/**
+ * Service: OptionGroupModelService
+ */
+;(function() {
+	'use strict';
+	
+	angular.module('aptCPQUI').service('OptionGroupModelService', OptionGroupModelService);
 
 	OptionGroupModelService.$inject = [
 		'$q',
 		'lodash',
 		'systemConstants',
+		'aptBase.i18nService',
 		'OptionModelService',
-		'aptBase.UtilService',
-		'aptBase.i18nService'
+		'aptBase.UtilService'
 	];
 
-	function OptionGroupModelService($q, _, systemConstants, OptionModel, UtilService, i18nService) {
+	function OptionGroupModelService($q, _, systemConstants, i18nService, OptionModel, UtilService) {
 		var nsPrefix = systemConstants.nsPrefix;
 		var labels = i18nService.CustomLabel;
+		var showTabView = !!systemConstants.customSettings.optionsPageSettings.TabViewInConfigureBundle;
 
 		function OptionGroupModel(groupMetadata, lineItemWrapper) {
-			var j, len, newOption, optionComponent, ref, existingOptionLine;
 			var thisGroup = this;
-			thisGroup.data = groupMetadata;
+			thisGroup.groupInfo = groupMetadata;
 			thisGroup.lineItem = lineItemWrapper;
 			thisGroup.options = [];
-			thisGroup.childGroups = [];
-			ref = thisGroup.data.options;
-			for (j = 0, len = ref.length; j < len; j++) {
-				optionComponent = ref[j];
-				//existingOptionLine = thisGroup.findOptionSelection(optionComponent);
-				newOption = new OptionModel(optionComponent, thisGroup, existingOptionLine);
-				thisGroup.options.push(newOption);
-			}
-			_.forEach(thisGroup.data.childGroups, function (childMetadata) {
-				var newGroup = new OptionGroupModel(childMetadata, thisGroup.lineItem);
-				thisGroup.childGroups.push(newGroup);
+			thisGroup.childGroups = _.map(thisGroup.groupInfo.childGroups, function (childMetadata) {
+				return new OptionGroupModel(childMetadata, thisGroup.lineItem);
 			}); 
 			return thisGroup;
 		}
 
-		OptionGroupModel.prototype.getHelpText = function() {
-			//return this.data.LongDescription; //need to handle html rendering
-			return this.data.LongDescription;
-			//return this.data.id;
-		};
-
-		OptionGroupModel.prototype.groupId = function() {
-			//Group id property starts with lowercase "i".
-			return this.data.id;
-		};
-
-		OptionGroupModel.prototype.isLeaf = function() {
-			return !!this.data.isLeaf;
-		};
-
-		OptionGroupModel.prototype.isPicklist = function() {
-			return !!this.data.isPicklist;
-		};
-
-		OptionGroupModel.prototype.isRadio = function() {
-			return (!this.isPicklist()) && (this.data.maxOptions === 1);
-		};
-
-		OptionGroupModel.prototype.isCheckbox = function() {
-			return (!this.isPicklist()) && (this.data.maxOptions !== 1);
-		};
-
-		OptionGroupModel.prototype.hasNoneOption = function() {
-			return this.data.minOptions === 0;
-		};
-
-		OptionGroupModel.prototype.hasNoneSelected = function(optionLines) {
-			return this.optionLinesFromGroup().length === 0;
-		};
-
-		//This is where the binding is decided
-		OptionGroupModel.prototype.findOptionSelection = function(optionWrapper) {
+		OptionGroupModel.prototype.buildOptions = function() {
 			var thisGroup = this;
-			return this.lineItem.addOption(optionWrapper).then(function (newOptionLine) {
-				if (newOptionLine.isPersisted) {
-					thisGroup.removeDefaults();
-				
-				} else if (optionWrapper.isDefault()) {
-					thisGroup.applyDefault(newOptionLine);
-				
-				}
-				return newOptionLine;
+			var optionPromises = _.map(thisGroup.groupInfo.options, function (optionMetadata) {
+				return thisGroup.lineItem.findOptionLineForComponent(optionMetadata).then(function (optionLineModel) {
+					return new OptionModel(optionMetadata, thisGroup, optionLineModel);
+				});
+			});	
+			var subGroupPromises = _.map(thisGroup.childGroups, function (childGroup) {
+				return childGroup.buildOptions();
 			});
+			//Fill in array of option models
+			var attachOptionsPromise = $q.all(optionPromises).then(function (optionModels) {
+				_.assign(thisGroup.options, optionModels);
+			});
+			//Wrap up all promises into one.
+			var allPromises = [attachOptionsPromise, $q.all(subGroupPromises)];
+			return $q.all(allPromises);
 		};
 
 		OptionGroupModel.prototype.optionLinesFromGroup = function() {
@@ -93,57 +57,61 @@
 			for (j = 0, len = ref.length; j < len; j++) {
 				option = ref[j];
 				if (option.isSelected()) {
-					selected.push(option.optionLine);
+					selected.push(option.lineItem);
 				}
 			}
 			return selected;
 		};
 
 		OptionGroupModel.prototype.getConfigurationMessages = function() {
+			var optionConfigInfo = this.getOptionConfigInfo();
 			var configMessages = [];
-			var optionTotals = this.getOptionTotals();
-			var minSelected = this.data.minOptions;    
-			var maxSelected = this.data.maxOptions;  
-			var isSelectValid = UtilService.isBetween(minSelected, maxSelected, optionTotals.selected);
+			var minSelected = this.groupInfo.minOptions;    
+			var maxSelected = this.groupInfo.maxOptions;  
+			var isSelectValid = UtilService.isBetween(minSelected, maxSelected, optionConfigInfo.selected);
 			if (!isSelectValid) {
-				var selectMessage = UtilService.stringFormat(labels.TotalOptionsInBetween, [this.data.label, minSelected, maxSelected]);
+				var selectMessage = UtilService.stringFormat(labels.TotalOptionsInBetween, [this.groupInfo.label, minSelected, maxSelected]);
 				configMessages.push(selectMessage);
 				
 			}
-			var minQty = this.data.minTotalQuantity;
-			var maxQty = this.data.maxTotalQuantity;
-			if (angular.isNumber(minQty) && optionTotals.quantity < minQty) {
-				var minMessage = UtilService.stringFormat(labels.TotalOptionMinimumQuantity, [this.data.label, minQty]);
+			var minQty = this.groupInfo.minTotalQuantity;
+			var maxQty = this.groupInfo.maxTotalQuantity;
+			if (angular.isNumber(minQty) && optionConfigInfo.quantity < minQty) {
+				var minMessage = UtilService.stringFormat(labels.TotalOptionMinimumQuantity, [this.groupInfo.label, minQty]);
 				configMessages.push(minMessage);
 
-			} else if (angular.isNumber(maxQty) && maxQty < optionTotals.quantity) {
-				var maxMessage = UtilService.stringFormat(labels.TotalOptionMaximumQuantity, [this.data.label, maxQty]);
+			} else if (angular.isNumber(maxQty) && maxQty < optionConfigInfo.quantity) {
+				var maxMessage = UtilService.stringFormat(labels.TotalOptionMaximumQuantity, [this.groupInfo.label, maxQty]);
 				configMessages.push(maxMessage);
 
 			}
 			//Push other messages attached to options.
+			configMessages = configMessages.concat(optionConfigInfo.messages);
 			return configMessages;
 
 		};
 
-		OptionGroupModel.prototype.getOptionTotals = function() {
+		OptionGroupModel.prototype.getOptionConfigInfo = function() {
 			var totalQty = 0,
-					numSelected = 0;
+					numSelected = 0,
+					optionMessages = [];
 			_.forEach(this.options, function(nextOption) {
+				optionMessages = optionMessages.concat(nextOption.getConfigurationMessages());
 				if (nextOption.isSelected()) {
 					numSelected += 1;
-					totalQty += nextOption.optionLine.quantity();   
+					totalQty += nextOption.lineItem.quantity();
 				}
 			});
 			//TODO: store counts to optimize traversal.
 			_.forEach(this.childGroups, function(nextChildGroup) {
-				var childTotals = nextChildGroup.getOptionTotals();
+				var childTotals = nextChildGroup.getOptionConfigInfo();
 				numSelected += childTotals.selected ? childTotals.selected : 0;
 				totalQty += childTotals.quantity ? childTotals.quantity : 0; 
 			});
 			return {
 				selected: numSelected,
-				quantity: totalQty
+				quantity: totalQty,
+				messages: optionMessages
 			};
 
 		};
@@ -152,35 +120,42 @@
 			var hadSelection = false;
 			_.forEach(this.options, function(nextOption) {
 				if (nextOption.isSelected()) {
+					nextOption.lineItem.deselect();
 					hadSelection = true;
-					nextOption.optionLine.deselect();
-					
 				}
 			});
-			_.forEach(this.childGroups, function(nextGroup) {
-				hadSelection = nextGroup.selectNone() || hadSelection;
+			_.forEach(this.childGroups, function (nextGroup) {
+				nextGroup.selectNone();
 			});
 			return hadSelection;
 		};
 
 		OptionGroupModel.prototype.toggleOption = function(option) {
 			var thisGroup = this;
-			var j, len, otherOption, ref;
+			var toggledComponent = option.optionComponent;
 			if (thisGroup.isPicklist() || thisGroup.isRadio()) {
 				//Always loop accross all to ensure unique selection.
 				thisGroup.selectNone();
-				return thisGroup.lineItem.addOption(option).then(function(newItem) {
-					return newItem.select();
+				return thisGroup.lineItem.findOptionLineForComponent(toggledComponent).then(function(newItem) {
+					newItem.select();
+					return newItem;
+					
 				});
 			
 			} else {
 				if (option.isSelected()) {
-					return $q.when(option.optionLine.deselect());
+					option.lineItem.deselect();
+					return $q.when(option.lineItem);
+
 				} else {
-					return thisGroup.lineItem.addOption(option).then(function(newItem) {
-						return newItem.select();
+					return thisGroup.lineItem.findOptionLineForComponent(toggledComponent).then(function(newItem) {
+						newItem.select();
+						return newItem;
+
 					});
+
 				}
+
 			}
 		
 		};
@@ -188,11 +163,11 @@
 		OptionGroupModel.prototype.removeDefaults = function() {
 			var thisGroup = this;
 			_.forEach(thisGroup.options, function (option) {
-				var optionLine = option.optionLine;
+				var optionLine = option.lineItem;
 				if (optionLine && !optionLine.isPersisted()) {
 					// optionLine.deselect();
 					//Deselect w/o dirtying
-					optionLine.data.isSelected = false;
+					optionLine.lineItemDO.isSelected = false;
 				}
 			});
 
@@ -201,18 +176,96 @@
 		OptionGroupModel.prototype.applyDefault = function(optionLine) {
 			var thisGroup = this;
 			var hasPersisted = _.some(thisGroup.options, function (otherOption) {
-				var otherOptionLine = otherOption.optionLine;
+				var otherOptionLine = otherOption.lineItem;
 				return otherOptionLine && otherOptionLine.isPersisted();
 
 			});
 			if (!hasPersisted) {
 				// optionLine.select();
 				//Select w/o dirtying
-				optionLine.data.isSelected = true;
+				optionLine.lineItemDO.isSelected = true;
 			}
 
 		};
 
+		OptionGroupModel.prototype.selectDefaults = function() {
+			_.forEach(this.options, function (nextOption) {
+				if (nextOption.isDefault()) {
+					nextOption.lineItem.select();
+				}
+			});
+			_.forEach(this.childGroups, function (nextGroup) {
+				nextGroup.selectDefaults();
+			});
+		};
+
+
+		OptionGroupModel.prototype.getHelpText = function() {
+			//return this.groupInfo.LongDescription; //need to handle html rendering
+			return this.groupInfo.LongDescription;
+			//return this.groupInfo.id;
+		};
+
+		OptionGroupModel.prototype.isActive = function() {
+			return (!!this.groupInfo.isActive || !showTabView) && !this.groupInfo.isHidden;
+		}
+		
+		OptionGroupModel.prototype.isContentTypeOptions = function() {
+			return !(this.groupInfo.contentType === 'Attributes' || this.groupInfo.contentType === 'Detail Page');
+		}
+		
+		OptionGroupModel.prototype.isContentTypeAttributes = function() {
+			return (this.groupInfo.contentType === 'Attributes');
+		}
+
+		OptionGroupModel.prototype.isContentTypeDetailPage = function() {
+			return (this.groupInfo.contentType === 'Detail Page');
+		}
+
+		OptionGroupModel.prototype.getDetailPageUrl = function() {
+			return this.groupInfo.detailPage;
+		}		
+		
+		OptionGroupModel.prototype.isModifiable = function() {
+			return this.groupInfo.modifiableType !== "Fixed";
+		};
+		
+		OptionGroupModel.prototype.isLeaf = function() {
+			return !!this.groupInfo.isLeaf;
+		};
+		
+		OptionGroupModel.prototype.isTopLevel = function() {
+			return !this.groupInfo.parentId;
+		};
+		
+		OptionGroupModel.prototype.isHidden = function() {
+			return !!this.groupInfo.isHidden;
+		};
+
+		OptionGroupModel.prototype.isPicklist = function() {
+			return !!this.groupInfo.isPicklist;
+		};
+
+		OptionGroupModel.prototype.isRadio = function() {
+			return (!this.isPicklist()) && (this.groupInfo.maxOptions === 1);
+		};
+
+		OptionGroupModel.prototype.isCheckbox = function() {
+			return (!this.isPicklist()) && (this.groupInfo.maxOptions !== 1);
+		};
+
+		OptionGroupModel.prototype.hasNoneOption = function() {
+			return this.groupInfo.minOptions === 0;
+		};
+
+		OptionGroupModel.prototype.hasNoneSelected = function(optionLines) {
+			return this.optionLinesFromGroup().length === 0;
+		};
+		
+		OptionGroupModel.prototype.attributeGroupId = function() {
+			return this.groupInfo.attributeGroupId;
+		};
+		
 		return OptionGroupModel;
 
 	}

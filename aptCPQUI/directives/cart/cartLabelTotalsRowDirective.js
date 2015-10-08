@@ -1,32 +1,33 @@
-(function() {
-  var CartLabelTotals, CartLabelTotalsCtrl;
+/**
+ * Directive: cartLabelTotals
+ */
+;(function() {
+	'use strict';
 
-  CartLabelTotalsCtrl = function(CartService) {
-    var vm;
-    vm = this;
-    return CartService.getCartTotalSummaryColumns().then(function(res) {
-      return vm.displayColumns = res;
-    });
-  };
+	angular.module('aptCPQUI').directive('cartLabelTotals', CartLabelTotals);
 
-  CartLabelTotalsCtrl.$inject = ['CartService'];
+	CartLabelTotals.$inject = ['systemConstants'];
 
-  CartLabelTotals = function(systemConstants) {
-    var directive;
-    directive = {
-      scope: {
-        item: '='
-      },
-      templateUrl: systemConstants.baseUrl + '/templates/directives/cart-label-total-row.html',
-      controller: CartLabelTotalsCtrl,
-      controllerAs: 'cartLabelTotals',
-      bindToController: true
-    };
-    return directive;
-  };
+	function CartLabelTotals(systemConstants) {
+		return {
+			scope: {
+				item: '='
+			},
+			controller: CartLabelTotalsCtrl,
+			controllerAs: 'cartLabelTotals',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/cart/cart-label-total-row.html'
+		};
+	};
 
-  CartLabelTotals.$inject = ['systemConstants'];
+	CartLabelTotalsCtrl.$inject = ['CartService'];
 
-  angular.module('aptCPQUI').directive('cartLabelTotals', CartLabelTotals);
+	function CartLabelTotalsCtrl(CartService) {
+		var vm;
+		vm = this;
+		return CartService.getCartTotalSummaryColumns().then(function(res) {
+			return vm.displayColumns = res;
+		});
+	};
 
 }).call(this);

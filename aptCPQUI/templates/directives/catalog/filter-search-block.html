@@ -1,0 +1,59 @@
+
+<div class="filter-search-block block">
+  <h3 class="filter-search-block__title">{{searchFilter.labels.FilterResults}}</h3>
+  <h4>
+    <a ui-sref="search({term: '{{searchFilter.searchTerm}}', categoryId: ''})" 
+       ng-if="searchFilter.viewAll" 
+       class="filter-search-block__view-all">
+      <i class="ss-binoculars"></i>{{searchFilter.labels.ViewAll}}
+    </a>
+  </h4>
+  <div class="filter-search-block__groups">
+    <ul ng-repeat="category in searchFilter.categories" class="filter-search-block__results">
+      <!--Top level-->
+      <li ng-class="{ 'is--open' : searchFilter.isExpanded(category), 
+                      'is--selected' : (category.nodeId == searchFilter.selectedCategoryId),
+                      'has-no-child' : !searchFilter.hasChildCategory(category)
+                    }"
+          ng-click="searchFilter.toggleSubMenu($event, category)"
+          ng-if="searchFilter.isInSearchResult(category)">
+        <a ui-sref="search({term: '{{searchFilter.searchTerm}}', categoryId: '{{category.nodeId}}' })">
+          <span ng-if="searchFilter.hasChildCategory(category)">
+            <i class="ss-directright"></i><i class="ss-dropdown"></i>
+          </span>
+          {{category.label}}
+        </a>
+        <ul class="submenu">
+          <li ng-class="{ 'is--open' : searchFilter.isExpanded(catChild), 
+                          'is--selected' : (catChild.nodeId == searchFilter.selectedCategoryId), 
+                          'has-no-child' : !searchFilter.hasChildCategory(catChild)
+                        }"
+              ng-click="searchFilter.toggleSubMenu($event, catChild)"
+              ng-repeat="catChild in category.childCategories"
+              ng-include="'subTreeFilter'"
+              ng-if="searchFilter.isInSearchResult(catChild)">
+          </li>
+        </ul>
+      </li>
+      <script type="text/ng-template" id="subTreeFilter">
+        <a ui-sref="search({term: '{{searchFilter.searchTerm}}', categoryId: '{{catChild.nodeId}}' })">
+          <span ng-if="searchFilter.hasChildCategory(catChild) ">
+            <i class="ss-directright"></i><i class="ss-dropdown"></i>
+          </span>
+          {{catChild.label}}
+        </a>
+        <ul ng-if="catChild.childCategories" class="submenu">
+          <li ng-class="{ 'is--open' : searchFilter.isExpanded(catChild),
+                          'is--selected' : (catChild.nodeId == searchFilter.selectedCategoryId), 
+                          'has-no-child' : !searchFilter.hasChildCategory(catChild) 
+                        }"
+              ng-click="searchFilter.toggleSubMenu($event, catChild)"
+              ng-repeat="catChild in catChild.childCategories"
+              ng-include="'subTreeFilter'" 
+              ng-if="searchFilter.isInSearchResult(catChild)">
+          </li>
+        </ul>
+      </script>
+    </ul>
+  </div>
+</div>

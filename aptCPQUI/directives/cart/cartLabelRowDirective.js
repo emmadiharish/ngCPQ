@@ -1,33 +1,39 @@
-(function() {
-  var CartLabel, cartLabelLink;
+/**
+ * Directive: 
+ */
+;(function() {
+	'use strict';
+	
+	angular.module('aptCPQUI').directive('cartLabelField', CartLabel);
 
-  cartLabelLink = function(scope, elem, attr) {
-    var cart, header, scrollHandler;
-    scrollHandler = function() {
-      header = header || document.querySelector('.cart-header');
-      cart = cart || document.querySelector('.main-cart-wrapper');
-      if (cart && header && angular.element(cart).hasClass('main-cart-wrapper--header-fixed')) {
-        var newTop = header.getBoundingClientRect().height - cart.getBoundingClientRect().top - 60 + 'px';
-        elem.css({
-          'top': newTop
-        });
-      } else {
-        elem.css({
-          'top': '0'
-        });
-      }
-    };
-    return window.addEventListener('scroll', scrollHandler);
-  };
+	function CartLabel() {
+		return {
+			link: cartLabelLink
+		};
+	};
 
-  CartLabel = function() {
-    var directive;
-    directive = {
-      link: cartLabelLink
-    };
-    return directive;
-  };
+	function cartLabelLink(scope, elem, attr) {
+		var cart, header, globalHeader;
+		function scrollHandler() {
+			header = header || document.querySelector('.cart-header');
+			cart = cart || document.querySelector('.main-cart-wrapper');
+			globalHeader = globalHeader || document.querySelector('.header-global');
+			if (cart && header && angular.element(cart).hasClass('main-cart-wrapper--header-fixed')) {
+				// 26 is gap between process trail and main cart 
+				var newTop = - cart.getBoundingClientRect().top - Math.ceil(globalHeader.getBoundingClientRect().height) - 26 + 'px';
+				elem.css({
+					'top': newTop
+				});
+			} else {
+				elem.css({
+					'top': '0'
+				});
+			}
+		};
+		
+		return window.addEventListener('scroll', scrollHandler);
+		
+	};
 
-  angular.module('aptCPQUI').directive('cartLabelField', CartLabel);
 
 }).call(this);

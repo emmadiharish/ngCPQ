@@ -1,0 +1,25 @@
+
+<div class="cart-header">
+  <div class="cart-header__cart-title">
+    <h1><span class="ss-icon ss-cart"></span>{{locationCartHeader.labels.CartViewPageTitle}}</h1>
+  </div>
+  <div class="cart-header__product-batch-actions">
+    <div class="checkbox-override">
+    </div>
+    <div class="button-row" ng-show="locationCartHeader.isAnyProductSelected()">
+      <span class="selected-num">{{locationCartHeader.selectedProductsCount}} {{locationCartHeader.labels.Selected}}</span>
+
+      <button ng-click="locationCartHeader.copyCheckedItems()" 
+              class="tertiary">
+        <span>{{locationCartHeader.labels.Copy}}</span>
+      </button>
+      <button ng-click="locationCartHeader.removeCheckedItems()" 
+              class="tertiary">
+        <span>{{locationCartHeader.labels.RemoveFromCart}}</span>
+      </button>
+    </div>
+    <div class="pagination-group">
+      <dir-pagination-controls></dir-pagination-controls>
+    </div>
+  </div>
+</div>

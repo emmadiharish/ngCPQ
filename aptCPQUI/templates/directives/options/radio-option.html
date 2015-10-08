@@ -1,20 +1,28 @@
 
 <div class="main-configure-product__product-option-container"  
-		 ng-class="{'product-option__error': radioCtrl.option.hasError()}">
+		 ng-class="{'product-option__error': radioCtrl.option.hasError(),
+								'option-disabled': radioCtrl.isOptionDisabled()}">
 	<div class="form-element-container product-option__name"
 			 id="{{radioCtrl.option.componentId()}}">
 		<div class="radio-override">
 			<input type="radio" 
 						 ng-click="radioCtrl.toggleOption()" 
 						 ng-checked="radioCtrl.option.isSelected()"
-						 id="{{radioCtrl.option.componentId() + radioCtrl.level}}"
-						 name="{{radioCtrl.option.group.groupId() + radioCtrl.level}}"
+						 ng-disabled="radioCtrl.isOptionDisabled()"
+						 id="{{radioCtrl.option.optionComponent.Id + radioCtrl.level}}"
 						 class="radio-type"/>
-			<label for="{{radioCtrl.option.componentId() + radioCtrl.level}}"></label>
+						 <!-- Removing html radio relationship so that selection is clearer when there are errors -->
+						 <!-- name="{{radioCtrl.option.group.groupInfo.id + radioCtrl.level}}" -->
+			<label for="{{radioCtrl.option.optionComponent.Id + radioCtrl.level}}"></label>
 		</div>
-		<label ng-click="radioCtrl.openProductSummary(radioCtrl.option.optionLine.productID())">
-			{{radioCtrl.option.name()}}
+		<label>
+			<span ng-click="radioCtrl.openProductSummary(radioCtrl.option.lineItem.productId())">{{radioCtrl.option.name()}}</span>
+			<i ng-if="radioCtrl.showConfigureIcon()" 
+				ui-sref="configure({txnPrimaryLineNumber: radioCtrl.option.lineItem.txnPrimaryLineNumber})" 
+				class="product-option__name ss-wrench">
+        	</i>
 		</label>
+		
 	</div>
 	<div class="form-element-container product-option__code">
 		<span>{{radioCtrl.extraColumn(1)}}</span>
@@ -23,8 +31,9 @@
 		<span>{{radioCtrl.extraColumn(2)}}</span>
 	</div>
 	<div class="form-element-container product-option__quantity">
-		<dynamic-field model="radioCtrl.option.optionLine.data.chargeLines[0].lineItemSO[radioCtrl.quantityField]"
-									 properties="{'FieldType': 'QUANTITY', 'IsEditable': radioCtrl.option.isEditable()}"
+		<dynamic-field model="radioCtrl.option.lineItem.quantityGetterSetter()" 
+									 field-type="QUANTITY"
+									 is-editable="{{radioCtrl.option.isEditable()}}"
 									 class="product-option__quantity">
 		</dynamic-field>
 	</div>

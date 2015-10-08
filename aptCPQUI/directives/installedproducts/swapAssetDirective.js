@@ -37,15 +37,20 @@
 		// handle selection of an upgrade/downgrade candidate
 		this.handleSwapSelection = function(assetId, productId) {
 			$state.go('assets.swap.confirm', { "assetId": assetId, "productId": productId });
-		}
+		};
 
 		this.handleConfirmOperation = function() {
-			AssetService.resetLineSelection();
-			AssetService.currLineSelectionMap = {}; // clear the selection map
-			AssetService.disableActions = true;
-			AssetService.resetDisableActionsObj(); // disable all action buttons
-			$state.go('assets');
-		}
+			try {
+				AssetService.resetLineSelection();
+				AssetService.currLineSelectionMap = {}; // clear the selection map
+				AssetService.disableActions = true;
+				AssetService.resetDisableActionsObj(); // disable all action buttons
+			} catch(error) {
+				$log.error(error.message);
+			} finally {
+				$state.go('assets');
+			}
+		};
 
 		this.handleCancelOperation = function() {
 			AssetService.genericCancelAction('Swap');

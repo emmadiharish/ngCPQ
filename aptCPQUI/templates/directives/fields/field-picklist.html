@@ -1,11 +1,7 @@
 <!-- fieldType: PICKLIST -->
-<p class="select-override ">
-	<select ng-model="dynamicField.getSetModel" 
-					ng-model-options="dynamicField.modelOptions"
-					class="{{dynamicField.properties.StyleClass}}" 
-					style="{{dynamicField.properties.Style}}"
-					id="{{dynamicField.properties.ElementId}}">
-		<option ng-if="!dynamicField.properties.Required" value="">{{dynamicField.labels.None}}</option>
-		<option ng-repeat="entry in dynamicField.properties.pickListEntries">{{entry.label}}</option>
-	</select>
-</p>
+<ui-select ng-model="dynamicField.selected" theme="select2" ng-disabled="dynamicField.IsDisabled || !dynamicField.IsEditable" append-to-body="true" style="width:100%">
+    <ui-select-match placeholder="--{{dynamicField.labels.None}}--" allow-clear="true">{{$select.selected.label}}</ui-select-match>
+    <ui-select-choices repeat="entry.value as entry in dynamicField.entries | filter : $select.search">
+      <div ng-bind-html="trustAsHtml((entry.label | highlight: $select.search))"></div>
+    </ui-select-choices>
+</ui-select>

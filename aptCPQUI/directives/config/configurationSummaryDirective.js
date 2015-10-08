@@ -14,7 +14,7 @@
 
   function ConfigurationSummary(systemConstants) {
     return {
-      templateUrl: systemConstants.baseUrl + "/templates/directives/configuration-summary.html",
+      templateUrl: systemConstants.baseUrl + "/templates/directives/options/configuration-summary.html",
       controller: ConfigurationSummaryCtrl,
       controllerAs: 'summary',
       bindToController: true

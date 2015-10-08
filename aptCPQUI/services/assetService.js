@@ -24,12 +24,15 @@
 		assetServiceRef.assetLineItems = {};
 		assetServiceRef.assetColumnMetadata = {}; 
 		assetServiceRef.assetFilterList = []; // initalized to empty
+		assetServiceRef.assetFilterCache = {};
 		assetServiceRef.filteredResponse = false;
 		assetServiceRef.loadingDiv = false;
 		assetServiceRef.disableActions = true;
 		assetServiceRef.isAssetSummaryOpen = false;
 		
 		var isAssetCacheValid = false;
+		var isAssetFilterCacheValid = false;
+		var isAssetDisplayColumnCacheValide = false;
 		var selectedSummaryAsset = {};
 
 		assetServiceRef.disableActionsObj = {
@@ -130,7 +133,7 @@
 
 		this.getAssetLineItems = function() {
 			if (isAssetCacheValid) {
-				return assetServiceRef.assetLineItems;
+				return $q.when(assetServiceRef.assetLineItems);
 			} 
 
 			return AssetDataService.getAssetLineItemData().then(function(result){
@@ -143,6 +146,10 @@
 		this.invalidateAssetCache = function() {
 			isAssetCacheValid = false;
 		};
+
+		this.invalidateAssetFilterCache = function() {
+			isAssetFilterCacheValid = false;
+		}
 
 		this.searchAssetLineItems = function(searchKey) {
 			var assetFilters = [];
@@ -159,8 +166,8 @@
 		};
 
 		this.getColumnMetadata = function() {
-			if(isAssetCacheValid) {
-				return assetServiceRef.assetColumnMetadata;
+			if(isAssetDisplayColumnCacheValide) {
+				return $q.when(assetServiceRef.assetColumnMetadata);
 			}
 
 			return ConfigDataService.getDisplayColumns().then(function(result) {
@@ -170,7 +177,13 @@
 		};
 
 		this.getAssetFilterList = function() {
+			if (isAssetFilterCacheValid) {
+				return $q.when(assetServiceRef.assetFilterCache);
+			}
+
 			return AssetDataService.getAssetFiltersData().then(function(result){
+				assetServiceRef.assetFilterCache = result;
+				isAssetFilterCacheValid = true;
 				return result;
 			});
 		};
@@ -182,21 +195,18 @@
 		};
 
 		this.requestAssetAction = function(actionLineItems) {
-			return CartDataService.submitAssetActions(actionLineItems).then(function(result){
-				return result;
-			});
+			// return CartDataService.submitAssetActions(actionLineItems).then(function(result){
+			// 	return result;
+			// });
+			return CartDataService.submitAssetActions(actionLineItems);
 		};
 
 		this.getReplacementProducts = function(productId) {
-			return AssetDataService.getReplacementProducts(productId).then(function(result){
-				return result;
-			});
+			return AssetDataService.getReplacementProducts(productId);
 		};
 
 		this.calculateMetricsForAssets = function(actionLineItems) {
-			return AssetDataService.calculateMetricsForAssets(actionLineItems).then(function(result){
-				return result;
-			});
+			return AssetDataService.calculateMetricsForAssets(actionLineItems);
 		};
 
 		// handler for the filter panel "Apply" button
@@ -206,9 +216,7 @@
 			for ( var idx=0; idx < assetServiceRef.assetFilterList.length; idx++) {
 
 			}
-			return AssetDataService.getFilteredAssetLineItemData().then(function(result){
-				return result;
-			});
+			return AssetDataService.getFilteredAssetLineItemData();
 		};
 
 		// clear the asset Filter array

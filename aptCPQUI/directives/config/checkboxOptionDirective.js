@@ -12,11 +12,11 @@
 	function CheckboxOptionCtrl(systemConstants, ConfigureService, CatalogDataService) {
 		var checkboxCtrl = this;
 		var nsPrefix = systemConstants.nsPrefix;
+		var showTabView = !!systemConstants.customSettings.optionsPageSettings.TabViewInConfigureBundle;
+
 		checkboxCtrl.config = ConfigureService;
 		checkboxCtrl.quantityField = nsPrefix + 'Quantity__c';
 		checkboxCtrl.showAllPrices = false;
-		checkboxCtrl.excludedOptionIds = ConfigureService.excludedOptionIds;
-		checkboxCtrl.option.init();
 		
 		checkboxCtrl.toggleOption = function () {
 			checkboxCtrl.option.toggleSelected().then(function () {
@@ -37,9 +37,16 @@
 		};
 
 		checkboxCtrl.hasChildren = function() {
-			return checkboxCtrl.option.isSelected() 
-						&& (checkboxCtrl.nextLevel() < 4) 
-						&& checkboxCtrl.option.optionLine.hasOptions();
+			var optionsOrAttrs = checkboxCtrl.option.lineItem.hasOptions() || checkboxCtrl.option.lineItem.hasAttrs();
+			return (optionsOrAttrs && 
+							checkboxCtrl.option.isSelected() && 
+							checkboxCtrl.nextLevel() < 4);
+		};
+		
+		checkboxCtrl.showConfigureIcon = function() {
+			var optionsOrAttrs = checkboxCtrl.option.lineItem.hasOptions() || checkboxCtrl.option.lineItem.hasAttrs();
+			return (showTabView && optionsOrAttrs && checkboxCtrl.option.isSelected());
+			
 		};
 		
 		checkboxCtrl.getLevel = function() {
@@ -55,12 +62,16 @@
 		};
 
 		checkboxCtrl.isOptionDisabled = function() {
+			if (!checkboxCtrl.option.group.isModifiable()) {
+				return true;
+
+			}
 			if (!checkboxCtrl.option || checkboxCtrl.option.isSelected()) {
 				return false;
 
 			}
-			var optionId = checkboxCtrl.option.data[nsPrefix + 'ComponentProductId__c'];
-			return checkboxCtrl.excludedOptionIds.indexOf(optionId) > -1;
+			var optionId = checkboxCtrl.option.optionComponent[nsPrefix + 'ComponentProductId__c'];
+			return ConfigureService.excludedOptionIds.indexOf(optionId) > -1;
 
 		};
 
@@ -70,7 +81,7 @@
 		
 		return checkboxCtrl;
 		
-	};
+	}
 
 	
 	CheckboxOption.$inject = ['$compile', '$log', 'systemConstants'];
@@ -80,7 +91,7 @@
 			var compiler, newElement;
 			newElement = angular.element(document.createElement('option-groups'));
 			newElement.attr('level', "" + (scope.checkboxCtrl.nextLevel()));
-			newElement.attr('line-item', 'checkboxCtrl.option.optionLine');
+			newElement.attr('line-item', 'checkboxCtrl.option.lineItem');
 			compiler = $compile(newElement);
 			
 			return compiler(scope, (function(_this) {

@@ -1,45 +1,45 @@
-(function() {
-  var LineItemCartTotal, lineItemCartTotalCtrl, lineItemCartTotalLink;
+/**
+ * Directive : 
+ */
+;(function() {
+	'use strict';
 
-  lineItemCartTotalLink = function(scope, elem, attrs) {
-    var lineItem;
-    lineItem = elem[0];
-  };
+	angular.module('aptCPQUI').directive('lineItemCartTotal', LineItemCartTotal);
 
-  lineItemCartTotalCtrl = function(CartService) {
-    var vm;
-    vm = this;
-    vm.getSummaryItem = function(key) {
-      if (vm.item.summaryGroupSO[key]) {
-        return vm.item.summaryGroupSO[key];
-      } else {
+	LineItemCartTotal.$inject = ['systemConstants'];
 
-      }
-    };
-    return CartService.getCartTotalSummaryColumns().then(function(res) {
-      return vm.displayColumns = res;
-    });
-  };
+	function LineItemCartTotal(systemConstants) {
+		return {
+			scope: {
+				item: '='
+			},
+			controller: LineItemCartTotalCtrl,
+			controllerAs: 'lineItemCartTotal',
+			bindToController: true,
+			link: lineItemCartTotalLink,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/cart/cart-line-item-total.html'
+		};
+	};
 
-  lineItemCartTotalCtrl.$inject = ['CartService', 'aptBase.i18nService', '$compile'];
+	function lineItemCartTotalLink(scope, elem, attrs) {
+		var lineItem = elem[0];
+	};
 
-  LineItemCartTotal = function(systemConstants) {
-    var directive;
-    directive = {
-      scope: {
-        item: '='
-      },
-      link: lineItemCartTotalLink,
-      templateUrl: systemConstants.baseUrl + '/templates/directives/cart-line-item-total.html',
-      controller: lineItemCartTotalCtrl,
-      controllerAs: 'lineItemCartTotal',
-      bindToController: true
-    };
-    return directive;
-  };
+	LineItemCartTotalCtrl.$inject = ['CartService', 'aptBase.i18nService', '$compile'];
 
-  LineItemCartTotal.$inject = ['systemConstants'];
+	function LineItemCartTotalCtrl(CartService) {
+		var ctrl = this;
+		ctrl.getSummaryItem = function(key) {
+			if (ctrl.item.summaryGroupSO[key]) {
+				return ctrl.item.summaryGroupSO[key];
+			} else {
 
-  angular.module('aptCPQUI').directive('lineItemCartTotal', LineItemCartTotal);
+			}
+		};
+		return CartService.getCartTotalSummaryColumns().then(function(res) {
+			return ctrl.displayColumns = res;
+		});
+	};
+
 
 }).call(this);

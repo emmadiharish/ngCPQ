@@ -1,0 +1,63 @@
+
+<div ng-class="{ 'is--installed' :  catalogProduct.product.isInstalled }" class="main__listings_item listing-item"><span class="listing-check checkbox-override">
+    <input type="checkbox" ng-model="catalogProduct.product.select" id="#product-{{catalogProduct.product.productSO.Id}}" ng-disabled="catalogProduct.isProductDisabled()"/>
+    <label for="#product-{{catalogProduct.product.productSO.Id}}"></label></span>
+  <div class="listing-info">
+    <div class="image"><img ng-if="catalogProduct.baseFileUrl && catalogProduct.getIconId()" ng-src="{{catalogProduct.baseFileUrl + catalogProduct.getIconId()}}"/></div>
+    <div class="details">
+	  <h3 class="listing-title product-disabled-{{catalogProduct.isProductDisabled()}}"><a ng-click="catalogProduct.openProductSummary(catalogProduct.product.productSO.Id);">{{ catalogProduct.product.productSO.Name }}</a>
+        <span ng-show="catalogProduct.product.isInstalled" class="listing-installed"><i class="ss-check"></i>{{catalogProduct.labels.Installed}}</span>
+        <span ng-show="catalogProduct.inCartProductIds[catalogProduct.product.productSO.Id]" class="listing-in-cart"><i class="ss-cart"></i>{{catalogProduct.labels.Selected}}</span>
+      </h3>
+	  
+      <p class="listing-description">{{catalogProduct.product.productSO.Description}}</p>
+
+      <div class="listing-option-description" ng-init="items = catalogProduct.actionFn(catalogProduct.product)">
+        <ul ng-repeat="item in items">
+          <li>{{item.Name}}</li>
+        </ul>
+      </div>
+
+    </div>
+
+  </div>
+  <div class="listing-meta">
+    <div class="listing-meta__listing-prices">
+      <div ng-repeat="charge in catalogProduct.product.chargeList" class="listing-price product-disabled-{{catalogProduct.isProductDisabled()}}">
+        <h4 class="listing-price__standard">{{charge[catalogProduct.nsPrefix + "ChargeType__c"]}}</h4>
+        <h5 class="listing-price__s-price">
+          {{charge[catalogProduct.nsPrefix + "ListPrice__c"] | aptNumberToCurrency}}
+        </h5>
+      </div>
+    </div>
+    <div class="listing-quantity__amnt__disabled" ng-show="catalogProduct.isProductDisabled()">
+    </div>
+    <div class="listing-quantity" ng-show="!catalogProduct.isProductDisabled()">
+      <dynamic-field model="catalogProduct.product.quantity"
+                     properties="{FieldType: 'QUANTITY', IsEditable: true, StyleClass: 'listing-quantity__amnt'}",
+                     ng-disabled="catalogProduct.isProductDisabled()">
+      </dynamic-field>
+    </div>
+    <div ng-class="{ 'is--group' :   !catalogProduct.isMustConfigure() }" 
+         class="listing-actions">
+         <div class="listing-actions-area"> 
+          <button ng-hide="catalogProduct.isMustConfigure() || catalogProduct.isProductDisabled() || catalogProduct.isSoldAsOption()" 
+                  ng-click="catalogProduct.addToCart(catalogProduct.product)" 
+                  ng-class="{'is--alone' : !catalogProduct.isConfigurable()}" 
+                  class="primary">
+            <span ng-show="!catalogProduct.inCartProductIds[catalogProduct.product.productSO.Id]">
+              {{catalogProduct.labels.AddToCart}}
+            </span>
+            <span ng-show="catalogProduct.inCartProductIds[catalogProduct.product.productSO.Id]">
+              {{catalogProduct.labels.AddAnother}}
+            </span>
+          </button>
+          <button ng-show="(catalogProduct.isConfigurable()) && !catalogProduct.isProductDisabled() && !catalogProduct.isSoldAsOption()" 
+                  ng-click="catalogProduct.configure()" class="secondary">
+            <span>{{catalogProduct.labels.Configure}}...</span>
+          </button>
+          <span ng-show="catalogProduct.isSoldAsOption()" class="listing-in-cart"><i class="ss-flash"></i>{{catalogProduct.labels.SoldAsOption}}</span>
+        </div>
+    </div>
+  </div>
+</div>

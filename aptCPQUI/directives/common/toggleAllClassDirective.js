@@ -1,37 +1,40 @@
-(function() {
-  var ToggleAllClass;
+/**
+ * Directive: toggleAllClass
+ * 
+ */
+;(function() {
+	'use strict';
 
-  ToggleAllClass = function() {
-    var directive, toggleClassName;
-    toggleClassName = function(className, matches) {
-      var el, remaining;
-      el = matches[0];
-      remaining = Array.prototype.slice.call(matches, 1);
-      if (el.classList.contains(className)) {
-        el.classList.remove(className);
-      } else {
-        el.classList.add(className);
-      }
-      if (remaining.length > 0) {
-        return toggleClassName(className, remaining);
-      } else {
+	angular.module('aptCPQUI').directive('toggleAllClass', ToggleAllClass);
 
-      }
-    };
-    directive = {
-      link: function(scope, elem, attributes) {
-        var matches;
-        matches = document.querySelectorAll("." + attributes.toggleAllClass);
-        if (matches.length > 0) {
-          return elem.on('click', function(ev) {
-            return toggleClassName(attributes.toggleAllClassWith, matches);
-          });
-        }
-      }
-    };
-    return directive;
-  };
+	function ToggleAllClass() {
+		var toggleClassName = function(className, matches) {
+			var el = matches[0];
+			var remaining = Array.prototype.slice.call(matches, 1);
 
-  angular.module('aptCPQUI').directive('toggleAllClass', ToggleAllClass);
+			if (el.classList.contains(className)) {
+				el.classList.remove(className);
+			} else {
+				el.classList.add(className);
+			}
+
+			if (remaining.length > 0) {
+				return toggleClassName(className, remaining);
+			} else {
+
+			}
+
+		};
+		return {
+			link: function(scope, elem, attributes) {
+				var matches = document.querySelectorAll("." + attributes.toggleAllClass);
+				if (matches.length > 0) {
+					return elem.on('click', function(ev) {
+						return toggleClassName(attributes.toggleAllClassWith, matches);
+					});
+				}
+			}
+		};
+	};
 
 }).call(this);

@@ -67,6 +67,12 @@
       </table>
     </div>
     <!-- confirm and cancel buttons -->
+    <div class="main-asset-container-footer">
+      <div style="margin-top: 1.0rem">
+        <input class="asset-align__check-box" type="checkbox" id="provisioningOrderCheck" ng-model="cancelAssetCtrl.createProvisioningOrder"/>
+        <label class="asset-align__check-box" for="provisioningOrderCheck">Create Provisioning Order</label>
+      </div>
+    </div>
     <div class="main-asset-container-footer grey-top-border">
       <button class="secondary asset-action-button-spacing" ng-click="changeAssetsCtrl.handleConfirmOperation()">
         <span>{{changeAssetsCtrl.labels.Confirm}}</span>

@@ -1,29 +1,35 @@
-(function() {
-  var BreadcrumbTrail, breadcrumbCtrl;
+/**
+ * Directive: breadcrumbTrail
+ */
+;(function() {
+	'use strict';
 
-  breadcrumbCtrl = function(systemConstants, CatalogService, $stateParams) {
-    var vm;
-    vm = this;
-    return CatalogService.getBreadcrumb($stateParams.catID).then(function(res) {
-      vm.trail = res;
-      return vm.currentCategory = vm.trail.pop();
-    });
-  };
+	angular.module('aptCPQUI').directive('breadcrumbTrail', BreadcrumbTrail);
 
-  breadcrumbCtrl.$inject = ['systemConstants', 'CatalogDataService', '$stateParams'];
+	function BreadcrumbTrail(systemConstants) {
+		var directive = {
+				restrict: 'AE',
+				controller: BreadcrumbCtrl,
+				controllerAs: 'crumb',
+				bindToController: true,
+				templateUrl: systemConstants.baseUrl + '/templates/directives/catalog/breadcrumb-block.html'
+		};
 
-  BreadcrumbTrail = function(systemConstants) {
-    var directive;
-    directive = {
-      restrict: 'AE',
-      controllerAs: 'crumb',
-      bindToController: true,
-      controller: breadcrumbCtrl,
-      templateUrl: systemConstants.baseUrl + '/templates/directives/breadcrumb-block.html'
-    };
-    return directive;
-  };
+		return directive;
 
-  angular.module('aptCPQUI').directive('breadcrumbTrail', BreadcrumbTrail);
+	};
+
+	BreadcrumbCtrl.$inject = ['$stateParams', 'systemConstants', 'aptBase.i18nService', 'CatalogDataService'];
+	
+	function BreadcrumbCtrl($stateParams, systemConstants, i18nService, CatalogDataService) {
+		var ctrl = this;
+		ctrl.labels = i18nService.CustomLabel;
+		
+		return CatalogDataService.getBreadcrumb($stateParams.categoryId).then(function(res) {
+			ctrl.trail = res;
+			return ctrl.currentCategory = ctrl.trail.pop();
+		});
+		
+	};
 
 }).call(this);

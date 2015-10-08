@@ -1,26 +1,27 @@
-(function() {
-  var CartEditableAction, cartEditableActionCtrl;
+/**
+ * Directive: cartEditableAction
+ */
+;(function() {
+	'use strict';
 
-  cartEditableActionCtrl = function(CartService, i18nService) {
-    return this.labels = i18nService.CustomLabel;
-  };
+	angular.module('aptCPQUI').directive('cartEditableAction', CartEditableAction);
 
-  cartEditableActionCtrl.$inject = ['CartService', 'aptBase.i18nService'];
+	CartEditableAction.$inject = ['systemConstants'];
 
-  CartEditableAction = function(systemConstants) {
-    var directive;
-    directive = {
-      restrict: 'AEC',
-      templateUrl: systemConstants.baseUrl + '/templates/directives/cart-editable-action.html',
-      controller: cartEditableActionCtrl,
-      controllerAs: 'cartEditableAction',
-      bindToController: true
-    };
-    return directive;
-  };
+	function CartEditableAction(systemConstants) {
+		return {
+			restrict: 'AEC',
+			controller: CartEditableActionCtrl,
+			controllerAs: 'cartEditableAction',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/cart/cart-editable-action.html'
+		};
+	};
 
-  CartEditableAction.$inject = ['systemConstants'];
+	CartEditableActionCtrl.$inject = ['CartService', 'aptBase.i18nService'];
 
-  angular.module('aptCPQUI').directive('cartEditableAction', CartEditableAction);
+	function CartEditableActionCtrl(CartService, i18nService) {
+		return this.labels = i18nService.CustomLabel;
+	};
 
-}).call(this);
+})();

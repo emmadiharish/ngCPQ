@@ -9,13 +9,14 @@
 	<div class="main-product-catalog__product-blocks clearfix">
 		<div ng-repeat="category in catalog.categories"
 			class="main-product-catalog__product-block">
-			<a ui-sref="category({ catID: {{'category.nodeId'}} })">
-				<img ng-src="{{catalog.baseFileUrl}}{{category.largeIconId}}" /></a>
+			<a ui-sref="category({categoryId: {{'category.nodeId'}} })">
+				<img ng-if="catalog.baseFileUrl && category.largeIconId"ng-src="{{catalog.baseFileUrl + category.largeIconId}}" />
+			</a>
 			<h3>
-				<a ui-sref="category({ catID: {{'category.nodeId'}} })">{{category.label }}</a>
+				<a ui-sref="category({categoryId: {{'category.nodeId'}} })">{{category.label}}</a>
 			</h3>
 			<script type="text/ng-template" id="categoryTree">
-				<a ui-sref="category({ catID: {{ 'category.nodeId' }} })">{{ category.label }}</a>
+				<a ui-sref="category({categoryId: {{'category.nodeId'}} })">{{category.label}}</a>
 				<ul ng-if="category.childCategories &amp;&amp; category.nodeLevel &lt; 1">
 					<li ng-repeat="category in category.childCategories" ng-include="'categoryTree'"></li>
 				</ul>

@@ -76,18 +76,24 @@
 			// AssetService.loadingDiv = true;
 			ctrlRef.loading = true;
 			AssetService.requestAssetAction(lineItemDOList).then(function(result){
-
-				$log.debug(JSON.stringify(ctrlRef.assetLineItems));
-				Object.keys(AssetService.currLineSelectionMap).forEach(function (key){
-					AssetService.currLineSelectionMap[key].assetLineItemSO['@@uiSelection'] = false;
-				});
-				AssetService.currLineSelectionMap = {}; // clear the selection map
-				AssetService.disableActions = true;
-				AssetService.resetDisableActionsObj(); // disable all action buttons
-				// AssetService.loadingDiv = false;
-				ctrlRef.loading = false;
-				$log.debug("Change action finished! " + JSON.stringify(result));
-				$state.go('assets');
+				try {
+					$log.debug(JSON.stringify(ctrlRef.assetLineItems));
+					Object.keys(AssetService.currLineSelectionMap).forEach(function (key){
+						AssetService.currLineSelectionMap[key].assetLineItemSO['@@uiSelection'] = false;
+					});
+					AssetService.currLineSelectionMap = {}; // clear the selection map
+					AssetService.disableActions = true;
+					AssetService.resetDisableActionsObj(); // disable all action buttons
+					// AssetService.loadingDiv = false;
+					ctrlRef.loading = false;
+					// result.forEach(function(elem){
+					// 	$log.debug(JSON.stringify(elem.LineItemModel.lineItemDO)); // since result gets wrapped in LineItemModel
+					// });
+				} catch (error) {
+					$log.error(error.message);
+				} finally {
+					$state.go('assets');
+				}
 			});
 		};
 

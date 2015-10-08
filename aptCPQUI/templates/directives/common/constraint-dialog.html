@@ -1,39 +1,33 @@
 
 <div ng-show="ctrl.prompt()" class="modal-overlay"></div>
 <div ng-show="ctrl.visible" class="modal-dialog">
-  <div class="modal-header">
-    <h3>{{ctrl.labels.ConstraintRuleAlert}}</h3>
-  </div>
-  <div class="modal-content">
-    <div class="modal-content__notification"></div>
-    <div class="modal-content__description">
-      <p>{{ctrl.promptMessage}}</p>
-    </div>
-    <div class="modal-content__modal-row-container">
-      <div ng-repeat="product in ctrl.promptItems" class="modal-row">
-        <div class="form-element-container">
-          <div class="checkbox-override">
-            <input type="checkbox" id="{{product.productSO.Id}}" ng-click="ctrl.selectProduct(product)"/>
-            <label for="{{product.productSO.Id}}"></label>
-          </div>
-          <label for="{{product.productSO.Id}}">{{product.productSO.Name}}</label>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal-footer">
-    <div class="button-row">
-      <button ng-click="ctrl.addToCart()" 
-              class="primary"
-              ng-if="ctrl.isActionTypeInclusion()">
-              <span>{{ctrl.labels.AddToCart}}</span>
-      </button>
-      <button ng-click="ctrl.removeFromCart()"
-              class="primary"
-              ng-if="!ctrl.isActionTypeInclusion()">
-              <span>{{ctrl.labels.RemoveFromCart}}</span>
-      </button>
-      <button ng-click="ctrl.ignoreRuleAction()" class="cancel"><span>{{ctrl.labels.Cancel}}</span></button>
-    </div>
-  </div>
+	<div class="modal-header">
+		<h3>{{ctrl.labels.ConstraintRuleAlert}}</h3>
+	</div>
+	<div class="modal-content">
+		<div class="modal-content__notification"></div>
+		<div class="modal-content__description">
+			<p>{{ctrl.promptMessage}}</p>
+		</div>
+		<div class="modal-content__modal-row-container">
+			<div ng-repeat="product in ctrl.promptItems" class="modal-row">
+				<div class="form-element-container">
+					<div class="checkbox-override">
+						<input type="checkbox" id="{{product.productSO.Id}}" ng-click="ctrl.selectProduct(product)"/>
+						<label for="{{product.productSO.Id}}"></label>
+					</div>
+					<label for="{{product.productSO.Id}}">{{product.productSO.Name}}</label>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<div class="button-row">
+			<button ng-click="ctrl.performRuleAction()" 
+							class="primary">
+							<span>{{ctrl.ruleActionLabel}}</span>
+			</button>
+			<button ng-click="ctrl.ignoreRuleAction()" class="cancel"><span>{{ctrl.labels.Cancel}}</span></button>
+		</div>
+	</div>
 </div>

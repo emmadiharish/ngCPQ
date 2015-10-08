@@ -1,13 +1,14 @@
 (function() {
 	var MainAsset, mainAssetCtrl;
 
-	mainAssetCtrl = function($scope, $q, $log, $stateParams, systemConstants, _, AssetService, CartDataService) {
+	mainAssetCtrl = function($scope, $q, $log, $stateParams, systemConstants, _, UtilService, i18nService, AssetService, CartDataService) {
 		// get line items and column metadata
 		var activate, mainAssetRef;
 		mainAssetRef = this;
 		mainAssetRef.view = $stateParams.view;
 
-		mainAssetRef.linesPerPage = 25;
+		// mainAssetRef.linesPerPage = systemConstants.customSettings.systemProperties.LineItemsPerPage;
+		mainAssetRef.linesPerPage = 10;
 		mainAssetRef.loading = false;
 		mainAssetRef.globalLineSelection = false;
 		mainAssetRef.disableActions = true;
@@ -18,6 +19,12 @@
 		mainAssetRef.contextProductIds = [];
 		mainAssetRef.nsPrefix = systemConstants.nsPrefix;
 		mainAssetRef.assetLineItems = [];
+
+		mainAssetRef.labels = i18nService.CustomLabel;
+
+		// display toggles
+		mainAssetRef.showChargeLines = true;
+		mainAssetRef.showOptionLines = true;
 		// var currLineSelection = null; // to keep line item selection mutually exclusive
 
 		activate = function() {
@@ -39,6 +46,11 @@
 
 				// console.log("Asset Lines: " + res[0].length)
 				var assetDisplayCols = AssetService.assetColumnMetadata;
+
+				// reorder the assetItemColumn metadata so Product__r is at the start of the array
+				UtilService.reorderArray(assetDisplayCols.assetItemColumns, function (elem){
+					return (elem.FieldName.indexOf('ProductId__c') > -1);
+				});
 
 				// console.log("Display Columns: " + res[1].displayColumns.assetItemColumns.length)
 				// this should be a reusable utility method - mparikh
@@ -82,6 +94,51 @@
 		
 		activate();
 
+		// chargeLine Status
+		var updateChargeLineStatus = function(status, chargeLines) {
+			// if (!Array.isArray(chargeLines) || status == undefined) {
+			// 	return;
+			// }
+
+			chargeLines.forEach(function (chargeLine){
+				if (status === null) {
+					chargeLine.assetLineItemSO['@@PendingStatus'] = chargeLine.assetLineItemSO[mainAssetRef.nsPrefix + 'AssetStatus__c'];	
+				} else {
+					chargeLine.assetLineItemSO['@@PendingStatus'] = status;
+				}
+			});
+
+			return;
+		};
+
+		// recursively update status within options
+		var updateOptionLineStatus = function(status, optionLines) {
+			// if (!Array.isArray(optionLines) || status == undefined) {
+			// 	return;
+			// }
+
+			optionLines.forEach(function (optionLine){
+				// update status of chargelines
+				if (optionLine.hasOwnProperty('chargeLines')) {
+					updateChargeLineStatus(status, optionLine.chargeLines);
+				}
+
+				// update status of sub-optionLines (recursive)
+				if(optionLine.hasOwnProperty('optionLines')) {
+					updateOptionLineStatus(status, optionLine.optionLines);
+				}
+
+				if (status === null) {
+					optionLine.assetLineItemSO['@@PendingStatus'] = optionLine.assetLineItemSO[mainAssetRef.nsPrefix + 'AssetStatus__c'];
+				} else {
+					optionLine.assetLineItemSO['@@PendingStatus'] = status;	
+				}
+				
+			});
+
+			return;
+		};
+
 		// update pending status for assets if needed
 		var updateAssetLineItemStatus = function(inCartAssetIdMap) {
 			if (!Array.isArray(mainAssetRef.assetLineItems) || 
@@ -96,8 +153,20 @@
 					var status = inCartAssetIdMap[assetLine.assetLineItemSO.Id];
 					assetLine.assetLineItemSO['@@PendingStatus'] = status;
 					assetLine.assetLineItemSO['@@uiSelection'] = false; // force unselect
+					if (assetLine.hasOwnProperty('chargeLines')) {
+						updateChargeLineStatus(status, assetLine.chargeLines);
+					}
+					if (assetLine.hasOwnProperty('optionLines')) {
+						updateOptionLineStatus(status, assetLine.optionLines);
+					}
 				} else {
 					assetLine.assetLineItemSO['@@PendingStatus'] = assetLine.assetLineItemSO[mainAssetRef.nsPrefix + 'AssetStatus__c'];
+					if (assetLine.hasOwnProperty('chargeLines')) {
+						updateChargeLineStatus(null, assetLine.chargeLines);
+					}
+					if (assetLine.hasOwnProperty('optionLines')) {
+						updateOptionLineStatus(null, assetLine.optionLines);
+					}
 				}
 			});
 			return;
@@ -133,6 +202,7 @@
 
     // open the Asset Summary Dialog
     mainAssetRef.openSummaryDialog = function(assetDetails) {
+    	$log.debug(JSON.stringify(assetDetails));
     	AssetService.setSelectedSummaryAsset(assetDetails);
     }
 
@@ -152,7 +222,7 @@
     	if (checked) {
     		// setContextProductsForCurrentPage();
     		var Start = (mainAssetRef.currentPage - 1) * mainAssetRef.linesPerPage;
-      	var End = Start + mainAssetRef.linesPerPage;
+      	var End = Math.min((Start + mainAssetRef.linesPerPage), mainAssetRef.assetLineItems.length);
       	// for all the items on this page, set checkboxes
       	for (var i = Start; i < End; i++) {
       		var lineItem = mainAssetRef.assetLineItems[i];
@@ -262,7 +332,9 @@
 		'$log', 
 		'$stateParams', 
 		'systemConstants', 
-		'lodash', 
+		'lodash',
+		'aptBase.UtilService',
+		'aptBase.i18nService', 
 		'AssetService',
 		'CartDataService'
 	];

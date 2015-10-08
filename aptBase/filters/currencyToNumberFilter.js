@@ -21,6 +21,8 @@
 				return input;
 
 			}
+			input = input.trim();
+			var isNegative = input[0] == '(' && input[input.length - 1] == ')';
 			var nonDigitRegex = /\D/g;
 			var foundDecimal = false;
 			var digitsOnly = input.replace(nonDigitRegex, function(match) {
@@ -29,10 +31,15 @@
 					foundDecimal = true;
 					return '.';
 
+				} else if (!foundDecimal && match == '-') {
+					isNegative = true;
+
 				}
 				return '';
+
 			});
 			var inputAsNumber = UtilService.round(digitsOnly, currencySettings.precision);
+			inputAsNumber *= (1 - 2*isNegative); 
 			return inputAsNumber;
 
 		}

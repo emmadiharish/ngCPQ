@@ -1,32 +1,31 @@
 /**
  *  Apttus Config & Pricing
  *  FormulaEvaluatorService
- *   
+ *
  *  @2015-2016 Apttus Inc. All rights reserved.
  *
  * This service, FormulaEvaluatorService, contains methods for performing basic
  * numeric operations such as the elementary exponential, logarithm,
  * square root, and trigonometric functions. Additionally this class contains
- * some basic "functions" that can be evaluated to derive pricing 
+ * some basic "functions" that can be evaluated to derive pricing
  * rules anc criteria.
- * 
+ *
  * <p>This class can be extended using the setFunctions method
- * 
+ *
  */
 ;(function() {
 	angular.module('aptCPQData')
 		.service('FormulaEvaluator', FormulaEvaluator);
-    
-    //inject the formulae iterator
-    FormulaEvaluator.$inject = [		
+
+	//inject the formulae iterator
+	FormulaEvaluator.$inject = [
 		'FormulaIterator'
 	];
 
-	function FormulaEvaluator(iteratorProvider) {
-		IteratorServiceProvider = iteratorProvider;
-
-		var service = this;	
-		service.calculate = calculate;	
+	function FormulaEvaluator(IteratorService) {
+		var service = this;
+		/** -- Attach public methods -- */
+		service.calculate = calculate;
 		service.setFunctions = setFunctions;
 		service.setCacheEnabled = setCacheEnabled;
 		service.disableDependencyCheck = disableDependencyCheck;
@@ -34,141 +33,144 @@
 		service.incrementDependencyCount  = incrementDependencyCount;
 		service.decrementDependencyCount = decrementDependencyCount;
 		service.clearDependencies = clearDependencies;
-		service.getFunction = buildFunction;		
-	}
+		service.getFunction = buildFunction;
 
-	var functions = {},
-    	cache = {},
-    	FUNC = 1,
-		VAR = 2,
-		LIT = 3,
-		OPP = 4,
-		cacheEnabled = true,
-		varDependencies = {},
-		isBypassCheck = {},
-		undefinedFields = {},
-		sourceFields = {},
-		IteratorServiceProvider = null,
-		precedence = {			
-			'||' : {
-				precedence : 1,
-				func: function (a, b) {
-					return a || b;
+		/** -- Service scope variables -- */
+		var functions = {},
+			cache = {},
+			FUNC = 1,
+			VAR = 2,
+			LIT = 3,
+			OPP = 4,
+			cacheEnabled = true,
+			varDependencies = {},
+			isBypassCheck = {},
+			undefinedFields = {},
+			sourceFields = {},
+			precedence = {
+				'||' : {
+					precedence : 1,
+					func: function (a, b) {
+						return a || b;
+					},
+					arguments: 2,
+					type: OPP
 				},
-				arguments: 2,
-				type: OPP
+				'&&' : {
+					precedence : 3,
+					func: function (a, b) {
+						return a && b;
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'!=' : {
+					precedence : 5,
+					func: function (a, b) {
+						return a != b;
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'==' : {
+					precedence : 6,
+					func: function (a, b) {
+						return a == b;
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'<' : {
+					precedence : 6,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) < parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'>' : {
+					precedence : 10,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) > parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'<=' : {
+					precedence : 11,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) <= parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'>=' : {
+					precedence : 12,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) >= parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'+' : {
+					precedence : 17,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) + parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'-' : {
+					precedence : 17,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) - parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'*' : {
+					precedence : 23,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) * parseFloat(getBlankValue(b, 0));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'/' : {
+					precedence : 23,
+					func: function (a, b) {
+						return parseFloat(getBlankValue(a, 0)) / parseFloat(getBlankValue(b, 1));
+					},
+					arguments: 2,
+					type: OPP
+				},
+				'^' : {
+					precedence : 28,
+					func: function (a, b) {
+						return Math.pow(parseFloat(getBlankValue(a, 0)), parseFloat(getBlankValue(b, 0)));
+					},
+					arguments: 2,
+					type: OPP
+				},
 			},
-			'&&' : {
-				precedence : 3,
-				func: function (a, b) {
-					return a && b;
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'!=' : {
-				precedence : 5,
-				func: function (a, b) {
-					return a != b;
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'==' : {
-				precedence : 6,
-				func: function (a, b) {
-					return a == b;
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'<' : {
-				precedence : 6,
-				func: function (a, b) {										
-					return parseFloat(getBlankValue(a, 0)) < parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'>' : {
-				precedence : 10,
-				func: function (a, b) {
-					return parseFloat(getBlankValue(a, 0)) > parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'<=' : {
-				precedence : 11,
-				func: function (a, b) {
-					return parseFloat(getBlankValue(a, 0)) <= parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'>=' : {
-				precedence : 12,
-				func: function (a, b) {
-					return parseFloat(getBlankValue(a, 0)) >= parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},			
-			'+' : {
-				precedence : 17,
-				func: function (a, b) {
-					return parseFloat(getBlankValue(a, 0)) + parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'-' : {
-				precedence : 17,
-				func: function (a, b) {
-					return parseFloat(getBlankValue(a, 0)) - parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'*' : {
-				precedence : 23,
-				func: function (a, b) {
-					return parseFloat(getBlankValue(a, 0)) * parseFloat(getBlankValue(b, 0));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'/' : {
-				precedence : 23,
-				func: function (a, b) {					
-					return parseFloat(getBlankValue(a, 0)) / parseFloat(getBlankValue(b, 1));
-				},
-				arguments: 2,
-				type: OPP
-			},
-			'^' : {
-				precedence : 28,
-				func: function (a, b) {
-					return Math.pow(parseFloat(getBlankValue(a, 0)), parseFloat(getBlankValue(b, 0)));
-				},
-				arguments: 2,
-				type: OPP
-			}
-		},
-		variableOpen = '{',
-		variableEnd = '}',
-		variableRegex = new RegExp('^' + variableOpen + '.*?' + variableEnd),
-		functionRegex = null,
-		opporatorRegex = /^(==|!=|>=|<=|&&|\|\||[-+*\/()@^<>!&])/,
-		numberRegex = /\d+(\.\d*)?|\d+|\.\d+/,		
+			variableOpen = '{',
+			variableEnd = '}',
+			variableRegex = new RegExp('^' + variableOpen + '.*?' + variableEnd),
+			functionRegex = null,
+			opporatorRegex = /^(==|!=|>=|<=|&&|\|\||[-+*\/()@^<>!&])/,
+			numberRegex = /\d+(\.\d*)?|\d+|\.\d+/
+
+
+		/** -- Method declarations -- */
+
 		/**
 		*	Takes a formula and parses it into a token array
-		*	
+		*
 		*	@method tokenize
 		*	@param {String} input The formula
 		*	@return {Array} An array of tokens
 		*/
-		tokenize = function(input) {
+		function tokenize(input) {
 			var curIndex = 0,
 				tokens = [],
 				token,
@@ -219,7 +221,7 @@
 					});
 					curIndex = curIndex + regexMatch.length;
 				//Handles cases were token is a function
-				} else if (regexMatch = getFirstRegex(functionRegex,curRemainingString)) {					
+				} else if (regexMatch = getFirstRegex(functionRegex,curRemainingString)) {
 					nextMatPosition = regexMatch.indexOf('(');
 					funcName = regexMatch.substring(0,nextMatPosition);
 					stripFirstParam = regexMatch.substring(nextMatPosition);
@@ -227,9 +229,9 @@
 					//paramsUnparsed = findParameters(stripFirstParam.substring(1, stripFirstParam.length - 1));
 					paramsUnparsed = findParameters(curRemainingString.substring(nextMatPosition + 1,closingParan + 1));
 					params = [];
-					if(paramsUnparsed != '') {
+					if(paramsUnparsed) {
 						for (var i = 0, max = paramsUnparsed.length; i < max; i++) {
-							var newParam = 
+							var newParam =
 							params.push(buildTreeFromFormula(paramsUnparsed[i]));
 						}
 					}
@@ -248,39 +250,39 @@
 					curIndex = curIndex + regexMatch.length;
 				//Handles cases were the token is a number litteral
 				} else {
-					token = getFirstRegex(numberRegex, curRemainingString);					
+					token = getFirstRegex(numberRegex, curRemainingString);
 					if (isNaN(token)) {
 						throw "This is not an acceptable token: " + token;
 					}
 
 					tokens.push({
 						type: LIT,
-						val: new Number(token)
+						val: Number(token)
 					});
 					curIndex = curIndex + token.length;
-					
+
 				}
 			}
 			return tokens;
-		},
+		}
 
-		getBlankValue = function(checkVar, alternateVal) {
+		function getBlankValue(checkVar, alternateVal) {
 			if(typeof(checkVar) === 'undefined'
 					|| checkVar == null) {
 				return alternateVal;
 			}
 			return checkVar;
-		},
+		}
 
 		/**
 		*	Returns the first Regex match or null if none is found
-		*	
+		*
 		*	@method getFirstRegex
 		*	@param {RegExp} regex Regular expression to compare against the string
 		*	@param {String} string The string to find a match in
 		*	@return {String} The first regex match or null if none is found
 		*/
-		getFirstRegex = function(regex,string) {
+		function getFirstRegex(regex,string) {
 			if (regex) {
 				var results = regex.exec(string);
 				if(results) {
@@ -291,16 +293,16 @@
 			} else {
 				return null;
 			}
-			
-		},
+
+		}
 		/**
 		*	Returns an array of formulas inside a comma delimited parentheses
-		*	
+		*
 		*	@method findParameters
 		*	@param {String} input Contents inside of parentheses including wrapping parentheses
 		*	@return {Array} Array of formulas
 		*/
-		findParameters = function(input) {
+		function findParameters(input) {
 			var curPos = 0,
 				params = [],
 				unclosedParams = 0,
@@ -308,10 +310,14 @@
 				len = input.length;
 			while(curPos < len) {
 				curChar = input[curPos];
-				if (curChar === '(') {
+				if (curChar === '(' 
+						|| curChar === '{'
+						|| curChar === '[') {
 					unclosedParams++;
 					curPos++;
-				} else if(curChar === ')') {
+				} else if(curChar === ')' 
+						|| curChar === '}'
+						|| curChar === ']') {
 					unclosedParams--;
 					if (unclosedParams == -1) {
 						input = input.substring(0, curPos);
@@ -327,17 +333,21 @@
 					curPos++;
 				}
 			}
-			params.push(input);
+			
+			if(input) {
+				params.push(input);
+			}
+
 			return params;
-		},
+		}
 		/**
 		*	Returns the index of the closing parentheses in a string
-		*	
+		*
 		*	@method findClosingParan
 		*	@param {String} input Contents inside of parentheses including wrapping parentheses
 		*	@return {Integer} Index of the closing parenthesis
 		*/
-		findClosingParan = function(input) {
+		function findClosingParan(input) {
 			var numberOfUnclosed = 0,
 				currentChar;
 			for (var i = 0, max = input.length; i < max; i++) {
@@ -352,15 +362,15 @@
 				}
 			}
 			throw "No Closing Parentheses found";
-		},
+		}
 		/**
 		*	Reorders the tokens into postfix based on the precedence of the operators
-		*	
+		*
 		*	@method infixToPostFix
 		*	@param {Array} tokens An array of tokens
 		*	@return {Array} The tokens reorder based on the precedence of the operators
 		*/
-		infixToPostFix = function(tokens) {
+		function infixToPostFix(tokens) {
 			var stack =[],
 				postFix = [],
 				curToken,
@@ -392,15 +402,15 @@
 				postFix.push(curToken);
 			}
 			return postFix;
-		},
+		}
 		/**
 		*	Builds a tree with the tokens.
-		*	
+		*
 		*	@method buildTree
 		*	@param {Array} postFix An array of tokens
 		*	@return {Object} A tree that can be evaluated by the evalTree method
 		*/
-		buildTree = function(postFix) {
+		function buildTree(postFix) {
 			var i = 0,
 				max = postFix.length,
 				postFix = postFix.slice(0), //Copy it as to not modify the original array
@@ -409,14 +419,14 @@
 				params;
 			while (i < max
 					&& (i >=0)) {
-				currentToken = postFix[i];				
+				currentToken = postFix[i];
 				if (currentToken.type !== OPP) {
 					i++;
 				} else {
 					params = [];
 					numArgs = currentToken.arguments;
 					while (numArgs > 0) {
-						try {							
+						try {
 							params.push(postFix[i - numArgs]);
 							numArgs--;
 						} catch (err) {
@@ -433,20 +443,20 @@
 					max = postFix.length;
 				}
 			}
-			if (postFix.length !== 1) {				
+			if (postFix.length !== 1) {
 				throw 'Malformed Expression';
 			}
 			return postFix[0];
-		},
+		}
 		/**
 		*	Evaluates a tree with a given object
-		*	
+		*
 		*	@method evalTree
 		*	@param {Object} tree The tree to be evaluated
 		*	@param {Object} object The object that will be used to populate the variables
 		*	@return {Object} The result of the tree evaluation with the given object
 		*/
-		evalTree = function(tree, object) {
+		function evalTree(tree, object) {
 			if (tree.type === FUNC) {
 				var paramResults = [];
 				for (var i = 0, max = tree.params.length; i < max; i++) {
@@ -458,10 +468,10 @@
 			} else if (tree.type === LIT) {
 				return tree.val;
 			}
-		},
+		}
 		/**
 		*	Determines the value of a variable for the given object
-		*	
+		*
 		*	@method evalVar
 		*	@param {String} variable A string representing a variable Ex: x.y or x.$y[param, param, ...]
 		*	@param {Object} object The object that the variable will be evaluated against
@@ -469,39 +479,43 @@
 		*/
 		evalVar = function (variable, object) {
 			var path = variable.split(/\.(?=([^\']*\'[^\']*\')*[^\']*$)/g);
-			var curObject = object; var test = false;
+			var curObject = object;
+			var foundObjectId;
+			var fieldStartIdx;
 			for (var i = 0, max = path.length -1; i < max; i++) {
 				if(i != 0 && (i%2 != 0)) { continue; } //skip the capturing group
 
 				var curPath = path[i];
-				if(typeof(curObject) === 'undefined' ||
-						curObject == null) {
+				if(angular.isUndefined(curObject) || curObject === null) {
 					return null;
 				}
 
 				if(curPath[0] == '$') {
-					var afterStartKey = curPath.substring(1, curPath.length);					
+					var afterStartKey = curPath.substring(1, curPath.length);
 					if(!isNaN(afterStartKey)) {
 						var index;
-						if(afterStartKey === '') {							
+						if(afterStartKey === '') {
 							index = 0;
 						} else { //determine index in array
 							index = parseInt(afterStartKey);
 
 						}
 
-						if(index > 0) {							
+						if(index > 0) {
 							curObject = curObject[index];
-						} else if(Array.isArray(curObject)) {							
+						} else if(Array.isArray(curObject)) {
 							curObject = curObject[0];
 						}
-					} else { //special handler						
+
+						foundObjectId = curObject.Id;
+						fieldStartIdx = i + 2;
+					} else { //special handler
 						curPath = curPath.replace('[', '(').replace(']', ')');
 						var beginArgs = curPath.indexOf('(');
 						var funcName;
-						var paramsUnparsed = '';						
+						var paramsUnparsed = '';
 						if(beginArgs == -1) {
-							 funcName = curPath.substring(0);							 
+							 funcName = curPath.substring(0);
 						} else {
 							funcName = curPath.substring(0, beginArgs);
 							var stripFirstParam = curPath.substring(beginArgs);
@@ -513,7 +527,7 @@
 						if(paramsUnparsed != '') {
 							for (var j = 0; j < paramsUnparsed.length; j++) {
 								var paramTree = buildTreeFromFormula(paramsUnparsed[j]);
-								params.push(evalTree(paramTree, object));								
+								params.push(evalTree(paramTree, object));
 							}
 						}
 
@@ -525,10 +539,13 @@
 									curObject = curObject[0];
 								}
 							}
+
+							foundObjectId = curObject.Id;
+							fieldStartIdx = i + 2;
 						} catch(ex) {
-							if(ex instanceof SObjectNotFoundException) {
+							if(ex instanceof IteratorService.SObjectNotFoundException) {
 								var undefinedForType = undefinedFields[ex.sObjectType];
-								if(typeof(undefinedForType) === 'undefined') {
+								if(angular.isUndefined(undefinedForType)) {
 									undefinedForType = {};
 									undefinedFields[ex.sObjectType] = undefinedForType;
 								}
@@ -540,47 +557,48 @@
 								}
 
 								// end variable path search
-								return null;								
+								return null;
 							} else {
 								throw ex;
 							}
 						}
 					}
 				} else {
-					curObject = curObject[curPath];						
-				}				
+					curObject = curObject[curPath];
+				}
 			}
 
 			//check for dependency
-			if(typeof(curObject) !== 'undefined'
-					&& curObject != null) {
-				var objectId = curObject.Id;
-				if(hasDependency(objectId, path[i])) {
-					throw new IteratorServiceProvider.ExpressionDependencyException(objectId, path[i]);
+			if(angular.isDefined(curObject) && curObject != null
+					&& angular.isDefined(foundObjectId)) {
+				var fieldPath = path[i];
+				var dependentField = path.splice(fieldStartIdx).join('.').replace('..', '.');
+				if(hasDependency(foundObjectId, dependentField)) {
+					throw new IteratorService.ExpressionDependencyException(foundObjectId, dependentField);
 				}
 
-				// mark fields as accessed during evaluation				
-				var accessedFields = sourceFields[objectId];
-				if(typeof(accessedFields) === 'undefined') {
-					accessedFields = {};					
-					sourceFields[objectId] = accessedFields;
+				// mark fields as accessed during evaluation
+				var accessedFields = sourceFields[curObject.Id];
+				if(angular.isUndefined(accessedFields)) {
+					accessedFields = {};
+					sourceFields[curObject.Id] = accessedFields;
 				}
 
-				accessedFields[path[i]] =  path[i];
+				accessedFields[fieldPath] = fieldPath;
 			}
 
-			return curObject[path[i]];
-		},
-		
+			return curObject ? curObject[fieldPath] : null;
+		}
+
 		/**
 		*	A wrapper method that handles tokenizing the input, rearranging the tokens into postfix,
 		*	and building the tree. It also handles caching trees based on the input if the caching feature is enabled (the default)
-		*	
+		*
 		*	@method buildTreeFromFormula
 		*	@param {String} input The formula used to build the tree
 		*	@return {Object} A tree that can be evaluated by the evalTree method
 		*/
-		buildTreeFromFormula = function(input) {
+		function buildTreeFromFormula(input) {
 			var tree,
 				tokens,
 				postFix;
@@ -600,7 +618,7 @@
 				}
 				return tree;
 			}
-		},
+		}
 		/**
 		*	A wrapper method that retreves a tree for a given formula and evaluates it against
 		*	the given object. This is the functions that gets called by _eval
@@ -610,23 +628,23 @@
 		*	@param {string} object The object that will be used to populate the variables
 		*	@return {Object} The result of the formula with the object used to populate variable values
 		*/
-		calculate = function(input, object) {
+		function calculate(input, object) {
 			sourceFields = {};
 			undefinedFields = {};
 
 			var tree = buildTreeFromFormula(input);
-			var evalResult = evalTree(tree, object);			
+			var evalResult = evalTree(tree, object);
 			return {'result': evalResult,
 					'sourceFields':sourceFields,
 					'undefinedFields':undefinedFields};
-		},
+		}
 		/**
 		*	Sets the functions that can be used in the formulas
 		*
 		*	@method setFunctions
 		*	@param {Object} newFunctions A map of function names to functions
 		*/
-		setFunctions = function(newFunctions) {
+		function setFunctions(newFunctions) {
 			var functionRegexs = [],
 				regexString;
 			functions = newFunctions;
@@ -641,7 +659,7 @@
 				regexString = functionRegexs.join('|');
 				functionRegex = new RegExp(regexString);
 			}
-		},
+		}
 		/**
 		*	Sets the strings that will be used to wrap a variable for parsing
 		*
@@ -649,32 +667,32 @@
 		*	@param {String} open The string that signifies the start of a variable
 		*	@param {String} close The string that signifies the end of a variable
 		*/
-		setVarDelimiter = function(open, close) {
+		function setVarDelimiter(open, close) {
 			if (open && close) {
 				variableOpen = open;
-    			variableEnd = close;
-    			variableRegex = new RegExp('^' + variableOpen + '.*?' + variableEnd);
+				variableEnd = close;
+				variableRegex = new RegExp('^' + variableOpen + '.*?' + variableEnd);
 			} else {
 				variableRegex = null;
 			}
-		},
+		}
 		/**
 		*	Sets whether caching is enabled (default) or disabled
 		*
 		*	@method setCacheEnabled
 		*	@param {Boolean} ce Caching enabled
 		*/
-		setCacheEnabled = function(ce) {
+		function setCacheEnabled(ce) {
 			cacheEnabled = ce;
-		},
+		}
 
-		hasDependency = function(contextId, fieldName) {			
+		function hasDependency(contextId, fieldName) {
 			//check if bypass depency check is flagged
 			var skipCheckFields = isBypassCheck[contextId];
 			if(typeof(skipCheckFields) !== 'undefined') {
 				var skipCheck = skipCheckFields[fieldName];
 				if(typeof(skipCheck) !== 'undefined'
-						&& skipCheck == true) {
+						&& skipCheck === true) {
 					return false;
 
 				}
@@ -688,8 +706,8 @@
 
 			}
 
-			return false;			
-		},
+			return false;
+		}
 
 		/**
 		*	Sets whether caching is enabled (default) or disabled
@@ -697,15 +715,15 @@
 		*	@method setCacheEnabled
 		*	@param {Boolean} ce Caching enabled
 		*/
-		enableDependencyCheck = function(contextSO, fieldName) {			
+		function enableDependencyCheck(contextSO, fieldName) {
 			var bypassFields = isBypassCheck[contextSO.Id];
 			if(typeof(bypassFields) !== 'undefined') {
-				delete bypassFields[fieldName];
+				bypassFields[fieldName] = false;
 
 			}
-		},
+		}
 
-		disableDependencyCheck = function(contextSO, fieldName) {
+		function disableDependencyCheck(contextSO, fieldName) {
 			//<Id, <String, Integer>>
 			var bypassFields = isBypassCheck[contextSO.Id];
 			if(typeof(bypassFields) === 'undefined') {
@@ -713,50 +731,52 @@
 				bypassFields[''+fieldName] = true;
 				isBypassCheck[contextSO.Id] = bypassFields;
 
+			} else {
+				bypassFields[''+fieldName] = true;
 			}
-		},
+		}
 
 		/**
-		*	Disables the depency check on specified field		
+		*	Disables the depency check on specified field
 		*	@param contextSO context SObject
 		*	@param fieldName field on sObject which we are evaluating
 		*/
-		decrementDependencyCount = function(contextSO, fieldName) {
+		function decrementDependencyCount(contextSO, fieldName) {
 			var dependenciesForObject = varDependencies[contextSO.Id];
-			if(typeof(dependenciesForObject) !== 'undefined') {
+			if(angular.isDefined(dependenciesForObject)) {
 				var dependencyCount = dependenciesForObject[fieldName];
-				if(typeof(dependencyCount) !== 'undefined'
+				if(angular.isDefined(dependencyCount)
 						&& dependencyCount > 0) {
 					dependenciesForObject[fieldName]-=1;
 				}
 			}
-		},
+		}
 
 		/**
-		*	Enables the depency check on specified field		
+		*	Enables the depency check on specified field
 		*	@param contextSO context SObject
 		*	@param fieldName field on sObject which we are evaluating
 		*/
-		incrementDependencyCount = function(contextSO, fieldName) {
+		function incrementDependencyCount(contextSO, fieldName) {
 			var dependenciesForObject = varDependencies[contextSO.Id];
-			if(typeof(dependenciesForObject) === 'undefined') {
-				dependenciesForObject = {};				
+			if(angular.isUndefined(dependenciesForObject)) {
+				dependenciesForObject = {};
 				varDependencies[contextSO.Id] = dependenciesForObject;
 			}
 
-			var dependencyCount = dependenciesForObject[fieldName];			
-			if(typeof(dependencyCount) === undefined) {
-				dependencyCount = 0;				
+			var dependencyCount = dependenciesForObject[fieldName];
+			if(angular.isUndefined(dependencyCount)) {
+				dependencyCount = 0;
 			}
 
 			//increment dependency count
 			dependenciesForObject[fieldName] = ++dependencyCount;
 
-		},
+		}
 
-		clearDependencies = function() {
+		function clearDependencies() {
 			varDependencies = {};
-		},
+		}
 
 		/**
 		*	Builds an executable function which accepts an object as a parameter
@@ -765,11 +785,14 @@
 		*	@param {String} formula The formula that will be evaluated
 		*	@return {Function} an executable function which accepts an object as a parameter
 		*/
-		buildFunction = function(formula) {
+		function buildFunction(formula) {
 			var tree = buildTreeFromFormula(formula);
 			var newFunction = function(object) {
 				return evalTree(tree, object);
 			};
 			return newFunction;
 		}
+
+	}
+
 })();

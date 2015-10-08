@@ -8,40 +8,44 @@
 
 	ProductListCtrl.$inject = [
 	                           '$log',
+	                           '$state',
 	                           '$stateParams',
 	                           'lodash',
+	                           'systemConstants',
 	                           'aptBase.i18nService',
 	                           'CatalogDataService',
 	                           'CategoryService',
-	                           'CartDataService'
+	                           'CartDataService',
+	                           'FilterSearchService'
 	                           ];
 
-	function ProductListCtrl($log, $stateParams, _, i18nService, CatalogService, Category, CartDataService) {
+	function ProductListCtrl($log, $state, $stateParams, _, systemConstants, i18nService, CatalogDataService, CategoryService, CartDataService, FilterSearchService) {
 		var searchCtrl = this;
-		var searchedTerm = $stateParams.term;
-		var searchedTermCategory = $stateParams.category;
+		var searchTerm = $stateParams.term;
+		var searchCategory = $stateParams.categoryId;
 
 		searchCtrl.labels = i18nService.CustomLabel;
 
-		searchCtrl.excludedProductIds = Category.excludedProductIds; //Category Browse and Search Merge Change, Not foud its usage, copied from categoryProductCtrl.js
+		searchCtrl.excludedProductIds = CategoryService.excludedProductIds; //Category Browse and Search Merge Change, Not found its usage, copied from categoryProductCtrl.js
 
 		searchCtrl.selectedProductsCount = 0; //Category Browse and Search Merge Change, Added, it's fix for showing selected product count
-		searchCtrl.itemsPerPage = 10;
+		searchCtrl.itemsPerPage = systemConstants.customSettings.catalogPageSettings.CatalogProductsPerPage;
 		searchCtrl.currentPage = 1;
 		searchCtrl.productsInCurrentPage = [];
 		searchCtrl.contextProductIds = [];
-		searchCtrl.searchResultLoaded = false;
-		
+
+		FilterSearchService.searchResultLoaded = false;
+
 		//Category Browse and Search Merge Change, Added, not sure purpose of it, copied from categoryProductCtrl.js
 		var getExcludeProductIds = function() {
 			getContextProductsForCurrentPage();
-			searchCtrl.category.getExcludedProductsInContext();
+			CategoryService.getExcludedProductsInContext();
 		}
 
 		var getContextProductsForCurrentPage = function() {
-			var Start = (searchCtrl.currentPage - 1) * searchCtrl.itemsPerPage;
-			var End = Start + searchCtrl.itemsPerPage;
-			searchCtrl.contextProductIds = searchCtrl.getProductsList().slice(Start, End);
+			var start = (searchCtrl.currentPage - 1) * searchCtrl.itemsPerPage;
+			var end = start + searchCtrl.itemsPerPage;
+			searchCtrl.contextProductIds = searchCtrl.getProductsList().slice(start, end);
 			return searchCtrl.contextProductIds;
 		}
 
@@ -50,11 +54,15 @@
 		}
 
 		searchCtrl.isSearchResult = function() {
-			return (searchedTerm == "" || searchedTerm && angular.isDefined(searchedTerm));
+			return (searchTerm == "" || searchTerm && angular.isDefined(searchTerm));
+		}
+
+		searchCtrl.isSearchResultLoaded = function() {
+			return FilterSearchService.searchResultLoaded == true;
 		}
 
 		searchCtrl.getProductsList = function() {
-			return ( angular.isDefined(searchCtrl.category) && angular.isDefined(searchCtrl.category.products) ) ? searchCtrl.category.products : [];
+			return (angular.isDefined(CategoryService.products) ) ? CategoryService.products : [];
 		}
 
 		searchCtrl.pageChanged = function(newPage) {
@@ -71,10 +79,18 @@
 		}
 
 		searchCtrl.compareSelected = function() {
-			var selectedProducts = buildSelectedList();
-			if (selectedProducts.length > 0) {
+			var selectedProductIds = [];
+			_.each(searchCtrl.getProductsList(), function (product) {
+				if (product.select) {
+					selectedProductIds.push(product.productSO.Id);
+				}
+			});
+			if (selectedProductIds.length > 0) {
 				//Travel to compare state?
-				$log.info('Compare Selected Products: ', selectedProducts);
+				$log.info('Compare Selected Products2: ', selectedProductIds);
+				return $state.go('compare', {
+					productIds: selectedProductIds
+				});
 			}
 
 		}
@@ -121,7 +137,7 @@
 				if(!(_.includes(searchCtrl.excludedProductIds, product.productSO.Id))) {
 					product.select = newValue;
 				}
-			
+
 			});
 		}
 
@@ -143,55 +159,44 @@
 			return (needsMet !== 0 && needsMet === (searchCtrl.productsInCurrentPage.length - searchCtrl.excludedProductIds.length));
 		}
 
-		/*Remove this function if it is not used anywhere else
-		searchCtrl.selectOne = function(){
-			if(!searchCtrl.getProductsList()){
-				return;
-			}
-
-			initProductsInCurrentPage();
-
-			var needsMet = _.reduce(searchCtrl.productsInCurrentPage, function (memo, product) {
-				return memo + (product.select ? 1 : 0);
-			}, 0);
-			return (needsMet !== 0);
-		}*/
-
 		searchCtrl.isProductSelected = function () {
 			return (searchCtrl.selectedProductsCount !== 0);
 		}
 
+		searchCtrl.unSelectProducts = function () {
+			_.each(searchCtrl.products, function (product) {
+				product.select = false;
+			});
+		}
+
+		searchCtrl.getSearchResult = function () {
+			CatalogDataService.searchProducts(searchCategory, searchTerm).then(function(res) {
+				CategoryService.products = res.products;
+				CategoryService.filters = res.productFilters;
+				CategoryService.categoryId = searchCategory;
+
+				CategoryService.resultLeafCategoryIds = res.resultCategoryIds;
+				FilterSearchService.searchResultLoaded = true;
+
+				searchCtrl.unSelectProducts();
+			});
+
+		}
+
 		//initializer code block
 		var init = function() {
-			if (searchCtrl.isSearchResult()) { //Category Browse and Search Merge Change, Added condition to distinguse Search and Category logic
+			if (searchCtrl.isSearchResult()) {
+				//CategoryService.searchText = searchTerm;
+				FilterSearchService.searchResultLoaded = false;
 
-				searchCtrl.searchResultLoaded = false;
-
-				Category.setCurrentCategory(searchedTermCategory).then(function(res){
-
-					searchCtrl.category = Category;
-					searchCtrl.category.products = [];
-
-					var filters = ( angular.isDefined(searchCtrl.category) && angular.isDefined(searchCtrl.category.filters) ) ?  searchCtrl.category.filters : [] ;
-				
-					CatalogService.searchProducts(searchedTermCategory, searchedTerm, filters).then(function(res) {
-						searchCtrl.categories = res.categories;
-						searchCtrl.category.products = res.products;
-						searchCtrl.products = res.products;
-						searchCtrl.searchResultLoaded = true;
-
-						_.each(searchCtrl.products, function (product) {
-							product.select = false;
-						});
-						return searchCtrl.products;
-					});
+				FilterSearchService.setCurrentCategory(searchCategory).then(function(res){
+					CategoryService.products = [];
+					searchCtrl.getSearchResult();
 				});
-					
+
 			} else {
-				searchCtrl.category = Category; //Category Browse and Search Merge Change, Added  
-				searchCtrl.products = Category.products; //Category Browse and Search Merge Change, Added Todo:need condition for search and category
 				getExcludeProductIds();
-				searchCtrl.searchResultLoaded = true;
+				FilterSearchService.searchResultLoaded = true;
 			}
 		}
 

@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="search-header__product-actions" ng-show="productList.searchResultLoaded">
+    <div class="search-header__product-actions" ng-show="productList.isSearchResultLoaded()">
       <div class="checkbox-override">
         <input id="checkbox-all"
                type="checkbox" 
@@ -41,7 +41,7 @@
       </div>
     </div>
   </div>
-  <div class="main-product-listings" ng-show="productList.searchResultLoaded">
+  <div class="main-product-listings" ng-show="productList.isSearchResultLoaded()">
     <div dir-paginate="product in productList.getProductsList() | itemsPerPage: productList.itemsPerPage" class="main-block__listings">
       <ul>
         <li>

@@ -28,11 +28,12 @@
  		ctrlRef.open = function() {
 			// construct summary content
 			var selectedAsset = AssetService.getSelectedSummaryAsset();
+
 			ctrlRef.currentAsset.Name = selectedAsset.assetLineItemSO[ctrlRef.nsPrefix + 'ProductId__r'].Name;
 			ctrlRef.currentAsset.Description = selectedAsset.assetLineItemSO[ctrlRef.nsPrefix + 'ProductId__r'].Description;
 			ctrlRef.currentAsset.IconId = selectedAsset.assetLineItemSO[ctrlRef.nsPrefix + 'ProductId__r'][ctrlRef.nsPrefix + 'IconId__c'];
 
-			$log.debug("open triggered");
+			// $log.debug("open triggered " + JSON.stringify(selectedAsset));
 			ctrlRef.visible = true;
 		};
 

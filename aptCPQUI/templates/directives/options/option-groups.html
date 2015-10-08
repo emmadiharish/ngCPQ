@@ -1,62 +1,83 @@
-<!-- Start with top-level groups -->
-<span ng-repeat="group in groupsCtrl.lineItem.optionGroups"
-			class="main-configure-product__group-repeat">
-	<div ng-include="'groupContent'"
-			 ng-class="{'is--open': group.data.isExpanded}"
-			 class="main-configure-product__product-option">
-	</div> 	
-</span>
+<!-- Icon for showing/hiding configuration -->
+<a ng-if="groupsCtrl.showDetailsInline()" class="product-option__nested-option-configuration">  
+	<span ng-hide="groupsCtrl.isDetailsHidden"
+				ng-click="groupsCtrl.isDetailsHidden = true"
+				class="nested-option-configuration--hide">
+		<i class="is--expandable"></i>{{groupsCtrl.labels.HideDetails}}
+	</span>
+	<span ng-show="groupsCtrl.isDetailsHidden"
+				ng-click="groupsCtrl.isDetailsHidden = false"
+				class="nested-option-configuration--show">
+		<i class="is--expandable"></i>{{groupsCtrl.labels.ShowDetails}}
+	</span>
+</a>
+
+<div ng-hide="groupsCtrl.isDetailsHidden" class="main-configure-product__config-content">
+	<!-- Display attributes on sub-bundles -->
+	<div ng-if="groupsCtrl.showAttributesInline()" class="attrs-content">
+		<attribute-groups line-item="groupsCtrl.lineItem"></attribute-groups>
+	</div>
+
+	<!-- Loop over top-level groups -->
+	<span ng-repeat="group in groupsCtrl.lineItem.optionGroups"
+		  class="main-configure-product__group-repeat">
+		<div ng-if="group.isActive()"
+				 ng-include="'groupContent'"
+				 ng-class="{'is--open': group.groupInfo.isExpanded}"
+				 class="main-configure-product__product-option">
+		</div> 	
+	</span>
+</div> 	
 
 <!-- Recursive templating for displaying sub groups in ng-repeat -->
 <script type="text/ng-template" id="groupContent">
-	<h3 ng-if="groupsCtrl.lineItem.isTopLevel()" 
+	<!-- Large label for top-level groups -->
+	<h3 ng-if="!group.isTopLevel()" 
 			toggle-class="is--open"
 			parent="main-configure-product__product-option"
 			class="product-option__title"
-			id="{{group.data.id}}">
-		<i class="is--expandable"></i> {{group.data.label}}
-		<div class="product-option__title-help">
-			<div ng-bind-html="groupsCtrl.renderHTML(group.getHelpText())"></div>
-		</div>
-		<ul class="product-option__title-messages">
-			<li ng-repeat="message in group.getConfigurationMessages()">{{message}}</li>
-		</ul>
+			id="{{group.groupInfo.id}}">
+		<span><i class="is--expandable"></i> {{group.groupInfo.label}}</span>
 	</h3>
-	<a ng-if="!groupsCtrl.lineItem.isTopLevel()" 
-			toggle-class="is--open"
-			parent="main-configure-product__product-option"
-			class="product-option__nested-option-configuration"
-			id="{{group.data.id}}">  
-		<span class="nested-option-configuration--hide">
-			<i class="is--expandable"></i>{{groupsCtrl.labels.HideDetails}}
-		</span>
-		<span class="nested-option-configuration--show">
-			<i class="is--expandable"></i>{{groupsCtrl.labels.ShowDetails}}
-		</span>
-	</a>
-	<div ng-if="groupsCtrl.hasAttrConfig()" class="attrs-content">
-		<option-attribute-config line-item="groupsCtrl.lineItem"></option-attribute-config>
+
+	<div class="product-option__title-help">
+		<div ng-bind-html="groupsCtrl.renderHTML(group.getHelpText())"></div>
 	</div>
-	<label ng-if="!groupsCtrl.lineItem.isTopLevel()"
+
+	<ul class="product-option__title-messages">
+		<li ng-repeat="message in group.getConfigurationMessages()">{{message}}</li>
+	</ul>
+	<!-- Smaller label -->
+	<label ng-if="!group.lineItem.isTopLevel()"
 				 class="nested-option-configuration__title">
-		{{group.data.label}} 
+		{{group.groupInfo.label}} 
 	</label>
+
 	<!-- Display list of options if this is a leaf group -->
-	<div class="option-content" ng-if="group.isLeaf()">
-		<div ng-if="groupsCtrl.lineItem.isTopLevel()"
-				 class="product-option__label-row">
-			<label class="product-option__name">Option</label> 
-			<label class="product-option__code">{{groupsCtrl.config.pageSettings.ExtraOptionProductColumn1}}</label>
-			<label class="product-option__family">{{groupsCtrl.config.pageSettings.ExtraOptionProductColumn2}}</label> 
+	<div class="option-content" ng-if="group.isLeaf() && group.isContentTypeOptions()">
+		<div ng-if="group.isTopLevel()"
+				class="product-option__label-row" >
+			<label class="product-option__name">{{groupsCtrl.labels.OptionColumn}}</label> 
+			<label class="product-option__code">{{groupsCtrl.customSettings.optionsPageSettings.ExtraOptionProductColumn1Label}}</label>
+			<label class="product-option__family">{{groupsCtrl.customSettings.optionsPageSettings.ExtraOptionProductColumn2Label}}</label> 
 			<label class="product-option__quantity">{{groupsCtrl.labels.OptionQuantity}}</label>
-			<label class="product-option__price">Price</label>
+			<label class="product-option__price">{{groupsCtrl.labels.Price}}</label>
 		</div>
 		<radio-option-list ng-if="group.isRadio()"
-											 level="{{groupsCtrl.getLevel()}}" group="group"> </radio-option-list>
+				level="{{groupsCtrl.getLevel()}}" group="group"> </radio-option-list>
 		<checkbox-option-list ng-if="group.isCheckbox()"
-													level="{{groupsCtrl.getLevel()}}" group="group"> </checkbox-option-list>
+				level="{{groupsCtrl.getLevel()}}" group="group"> </checkbox-option-list>
 		<picklist-option-list ng-if="group.isPicklist()"
-													level="{{groupsCtrl.getLevel()}}" group="group"> </picklist-option-list>
+				level="{{groupsCtrl.getLevel()}}" group="group"> </picklist-option-list>
+	</div>
+
+	<div class="option-content" ng-if="group.isLeaf() && group.isContentTypeAttributes()">
+		<attribute-group line-item="group.lineItem" attribute-group="group.lineItem.attrGroup(group.attributeGroupId())"/>
+	</div>
+
+	<div class="option-content" ng-if="group.isLeaf() && group.isContentTypeDetailPage()">
+		<iframe ng-src="{{groupsCtrl.getPageUrl(group)}}" height="500px" width="100%"
+			min-height="100%"></iframe>
 	</div>
 
 	<!-- Recursively include template if this group has sub groups -->
@@ -64,7 +85,7 @@
 		<span ng-repeat="group in group.childGroups"
 					class="main-configure-product__group-repeat">
 			<div ng-include="'groupContent'"
-					 ng-class="{'is--open': group.data.isExpanded}"
+					 ng-class="{'is--open': group.groupInfo.isExpanded}"
 					 class="main-configure-product__product-option">
 			</div>
 		</span>

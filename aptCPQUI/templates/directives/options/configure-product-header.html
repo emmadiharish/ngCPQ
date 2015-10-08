@@ -1,0 +1,28 @@
+
+<div ng-if="headerCtrl.iconUrl() || headerCtrl.Description" 
+     class="main-configure-product__product-information">
+  <img ng-if="headerCtrl.iconUrl()" ng-src="{{headerCtrl.iconUrl()}}"/>
+  <p>{{::headerCtrl.product.Description}}</p>
+</div>
+<div class="main-configure-product__product-header-col">
+  <div class="main-configure-product__product-config">
+    <div class="main-configure-product__quantity">
+      <label>{{headerCtrl.labels.OptionQuantity}}</label>
+      <dynamic-field model="headerCtrl.primaryLine.fieldGetterSetter(headerCtrl.quantityField)"
+                     field-type="QUANTITY"
+                     is-editable="true">
+      </dynamic-field>
+    </div>
+    <div class="main-configure-product__term">
+      <label>{{headerCtrl.labels.Term}}</label>
+      <dynamic-field model="headerCtrl.primaryLine.fieldGetterSetter(headerCtrl.termField)"
+                     field-type="DOUBLE"
+                     is-editable="true">
+      </dynamic-field>
+    </div>
+  </div>
+  <div class="main-configure-product__frequency">
+    <label>{{::headerCtrl.labels.Frequency}}</label>
+    <span>{{headerCtrl.primaryLine.field(headerCtrl.frequencyField)}}</span>
+  </div>
+</div>

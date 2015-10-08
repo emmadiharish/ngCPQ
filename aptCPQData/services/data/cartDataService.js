@@ -1,55 +1,87 @@
 ;(function() {
-	
+	'use strict';	
 	angular.module('aptCPQData')
 		.service('CartDataService', CartDataService); 
 
 	CartDataService.$inject = [
-		'lodash',
 		'$http',
 		'$q',
 		'$log',
+		'lodash',
 		'systemConstants',
 		'aptBase.RemoteService',
 		'aptBase.ActionQueueService',
 		'LineItemCache',
 		'LineItemSupport',
+		'LineItemModelService',
 		'ConfigurationDataService',
 		'ConstraintRuleDataService',
 		'OptionDataService',
-		'PageErrorDataService'
+		'PageErrorDataService',
+		'AttributesCache',
+		'FieldExpressionCache'
 	];
 
-	function CartDataService(_, $http, $q, $log, systemConstants, RemoteService, ActionQueueService, LineItemCache, LineItemSupport, ConfigurationDataService, ConstraintRuleDataService, OptionDataService, PageErrorDataService) {
+	function CartDataService($http, 
+							 $q, 
+							 $log, 
+							 _, 
+							 systemConstants, 
+							 RemoteService, 
+							 ActionQueueService, 
+							 LineItemCache, 
+							 LineItemSupport, 
+							 LineItemModel, 
+							 ConfigurationDataService, 
+							 ConstraintRuleDataService, 
+							 OptionDataService, 
+							 PageErrorDataService, 
+							 AttributesCache,
+							 FieldExpressionCache) {
 		var service = this;
 		/** Init private service variables */
 		var nsPrefix = systemConstants.nsPrefix;
 		var lineItemArray = []; //This object is always returned by methods that modify the cart
 		var totalItemsArray = [];
 		var updateEvents;
+		//Promises used to batch requests into single calls
+		var cartPromise;
 		var cartHeader;
 		var cartHeaderPromise;
 		var cartLineItemsPromise;
+		var cartTotalsPromise;
+
+		var cartLocations;
+		var cartLocationsPromise;
+
+		service.locationLineItems = {};
+		service.lineItemsWithoutLocation = [];
+
 		/** Init public service variables */
 		service.inCartProductIds = {};
 		/** Attach public methods */
+		service.addCopyToCart = addCopyToCart;
 		service.addToBundle = addToBundle;
 		service.addToCart = addToCart;
-		service.addCopyToCart = addCopyToCart;
+		service.checkForPendingLineItems = checkForPendingLineItems;
 		service.configureBundle = configureBundle;
-		service.configureCartLineItems = configureCartLineItems;
+		service.createLineItemModel = createLineItemModel;
+		service.generatePendingAssetActions = generatePendingAssetActions;
 		service.getCartColumns = getCartColumns;
 		service.getCartHeader = getCartHeader;
 		service.getCartLineItems = getCartLineItems;
 		service.getCartLineItemsNew = getCartLineItems;
-		service.getCartTotal = getCartTotal;
-		service.getCartTotalsDisplayData = getCartTotalsDisplayData;
+		service.getCartLocations = getCartLocations;
+		service.getCartTotalLines = getCartTotalLines;
 		service.getCartTotalSummaryColumns = getCartTotalSummaryColumns;
 		service.getDisplayActions = getDisplayActions;
 		service.getExcludedOptionIds = getExcludedOptionIds;
 		service.getLineItem = getLineItem;
 		service.getLineItemDetails = getLineItemDetails;
+		service.getLineItems = getLineItems;
 		service.getQuoteSummary = getQuoteSummary;
 		service.isProductInCart = isProductInCart;
+		service.removeFromBundle = removeFromBundle;
 		service.removeFromCart = removeFromCart;
 		service.repriceCartLineItems = repriceCartLineItems;
 		service.resequenceLineItems = resequenceLineItems;
@@ -57,7 +89,7 @@
 		service.submitAssetActions = submitAssetActions;
 		service.updateBundle = updateBundle;
 		service.updateCartLineItems = updateCartLineItems;
-		service.getLineItems = getLineItems;
+		service.updateTotalItemArray = updateTotalItemArray;
 		/** Initialize the action queue with the relevent functions */
 		registerAllActions();
 
@@ -67,28 +99,65 @@
 		 *  
 		 * @return {Array} reference to the single line item array object
 		 */
-		function updateLineItemArray() {
-			Array.prototype.splice.apply(lineItemArray, [0,lineItemArray.length].concat(LineItemCache.getLineItems()));
-			resequenceLineItems();
-			_.forOwn(service.inCartProductIds, function(value, key){
+		function refreshItemsFromCache() {
+			lineItemArray.length = 0;
+			var lineItemsWithoutLocation = [];
+
+			_.forOwn(service.inCartProductIds, function(value, key) {
 				service.inCartProductIds[key] = false;
-				
+			});
+
+			_.forOwn(service.locationLineItems, function(value, key) {
+				service.locationLineItems[key] = []; // reset values for locations
 			});
 
 			// reset inCartAssetIds
 			service.inCartAssetIds = {};
+			//Scan all line items and resequence, etc.
+			var cachedItems = _.sortBy(LineItemCache.getLineItems(), function (lineModel) {
+				return lineModel.primaryLine().sequence();
 
-			for(var lineIndex = 0; lineIndex < lineItemArray.length; lineIndex ++) {
-				service.inCartProductIds[lineItemArray[lineIndex].lineItemSO[nsPrefix + 'ProductId__c']] = true;
+			});
+			var sequenceValue = 1;
 
+			_.forEach(cachedItems, function (lineModel) {
+				var lineItemDO = lineModel.lineItemDO;
+				lineModel.field(nsPrefix + 'LineSequence__c', sequenceValue);
+				sequenceValue += 1;
+				// maintain collection of products in cart
+				service.inCartProductIds[lineModel.field(nsPrefix + 'ProductId__c')] = true;
 				// maintain a map of asset lines in the cart
-				if ( lineItemArray[lineIndex].chargeLines[0].lineItemSO[nsPrefix + 'AssetLineItemId__c'] &&
-						 (lineItemArray[lineIndex].chargeLines[0].lineItemSO[nsPrefix + 'LineStatus__c'] != "Upgraded") ) {
-					var assetId = lineItemArray[lineIndex].chargeLines[0].lineItemSO[nsPrefix + 'AssetLineItemId__c'];
-					var status = lineItemArray[lineIndex].chargeLines[0].lineItemSO[nsPrefix + 'LineStatus__c'];
+				var assetId = lineModel.field(nsPrefix + 'AssetLineItemId__c');
+				var status = lineModel.field(nsPrefix + 'LineStatus__c');
+				if (assetId && status != "Upgraded") {
 					service.inCartAssetIds[assetId] = systemConstants.pendingStatusMap[status];
+					
 				}
-			}
+
+				//TODO: support other group by attributes
+				var primaryLineLocationField = lineModel.primaryLine().field(nsPrefix + 'LocationId__c');
+
+				if (angular.isDefined(primaryLineLocationField)) {
+					if (angular.isDefined(service.locationLineItems[primaryLineLocationField])) {
+						service.locationLineItems[primaryLineLocationField].push(lineModel);
+					
+					} else {
+						service.locationLineItems[primaryLineLocationField] = [lineModel];
+					
+					}
+				
+				} else {
+					lineItemsWithoutLocation.push(lineModel);
+ 				
+ 				}
+
+				// Hold on to model instead of DO
+				lineItemArray.push(lineModel);
+
+			});
+
+			//TODO: merge with location line items.
+			Array.prototype.splice.apply(service.lineItemsWithoutLocation, [0,service.lineItemsWithoutLocation.length].concat(lineItemsWithoutLocation));
 
 			return lineItemArray;
 
@@ -98,12 +167,22 @@
 			return totalItemsArray;
 
 		}
+
+		/**
+		 * Create a line item model from DO
+		 * @param lineItemDO the line item DO
+		 * @return the line item model structure
+		 */
+		function createLineItemModel(lineItemDO) {
+			return LineItemModel.create(lineItemDO);
+
+		}
 		
 		/**
 		 * returns list of option product excluded by rule for the context bundle 
 		 */
 		function getExcludedOptionIds(contextBundleNumber) {
-			if (angular.isUndefined(contextBundleNumber) || contextBundleNumber > 10000) { //new line
+			if (angular.isUndefined(contextBundleNumber) || contextBundleNumber > 10000) {//new line
 				return $q.when([]);
 			}
 			return ConfigurationDataService.requestBasePromise.then(function(baseRequest) {
@@ -115,7 +194,59 @@
 
 		}
 
+		/**
+		 * get quote summary for business object id
+		 */
+		function getQuoteSummary(businessObjectId) {
+			return ConfigurationDataService.getSObjectSummary(businessObjectId);
+			
+		}
 
+
+		/**
+		 * A single function for initially requesting the cart, its line items,
+		 * 	and the total lines. Currently private, not exposed as a service method.
+		 * @return {Promise} promise resolves with the result of the call
+		 */
+		function getCart() {
+			if (angular.isDefined(cartPromise)) {
+				return cartPromise;
+
+			}
+			var includeParams = [
+				//The cart header object
+				ConfigurationDataService.includeConstants.CART,
+				//The pricing totals
+				ConfigurationDataService.includeConstants.TOTAL_ITEMS,
+				//The lines and charges of the cart
+				ConfigurationDataService.includeConstants.CART_LINES,
+				ConfigurationDataService.includeConstants.CHARGE_LINES, 
+				ConfigurationDataService.includeConstants.PRICE_RAMPS,
+				//Any oustanding rules
+				ConfigurationDataService.includeConstants.RULE_ACTIONS,
+				//The data objects needed for attributes
+				ConfigurationDataService.includeConstants.ATTRIBUTE_VALUES,				
+				ConfigurationDataService.includeConstants.ATTRIBUTE_RULES,
+				ConfigurationDataService.includeConstants.ATTRIBUTE_MATRICES,
+				//The field expressions
+				ConfigurationDataService.includeConstants.FIELD_EXPRESSIONS,
+				//The locations for the cart
+				ConfigurationDataService.includeConstants.CART_LOCATIONS
+			];
+			//Construct a request that doesn't run constraint rules or pricing 
+			cartPromise = ConfigurationDataService.createCartRequestDO(null, null, false, false, includeParams)
+				.then(function (cartRequest) {
+					return RemoteService.getCart(cartRequest);
+				});
+
+			return cartPromise;
+
+		}
+
+		/**
+		 * Retrive the cart header object.
+		 * @return {Promise} resolves with the cart header json
+		 */
 		function getCartHeader() {
 			if (cartHeader) {
 				return $q.when(cartHeader);
@@ -124,12 +255,7 @@
 				return cartHeaderPromise;
 
 			}
-			var includeParams = [ConfigurationDataService.includeConstants.CART];
-			var requestPromise = ConfigurationDataService.createCartRequestDO(null, null, null, null, includeParams).then(function(cartRequest){
-				return RemoteService.getCart(cartRequest);
-			});
-
-			cartHeaderPromise = requestPromise.then(function(result) {
+			cartHeaderPromise = getCart().then(function (result) {
 				cartHeader = result.cart;
 				return cartHeader;
 
@@ -138,12 +264,24 @@
 
 		}
 
-		/**
-		 * get quote summary for business object id
+		/*
+		 * returns cartLocations
 		 */
-		function getQuoteSummary(businessObjectId) {
-			return ConfigurationDataService.getSObjectSummary(businessObjectId);
+		function getCartLocations() {
+			if (cartLocations) {
+				return $q.when(cartLocations);
 			
+			} else if (cartLocationsPromise) {
+				return cartLocationsPromise;
+			
+			}
+
+			cartLocationsPromise = getCart().then(function (result) {
+				cartLocations = result.cartLocations;
+				return cartLocations;
+			});
+
+			return cartLocationsPromise;
 		}
 
 		/**
@@ -156,31 +294,50 @@
 		function getCartLineItems() {
 			// Get cached items by default
 			if (LineItemCache.isValid) {
-				var lineItems = updateLineItemArray();
+				var lineItems = refreshItemsFromCache();
 				return $q.when(lineItems);
 
 			} else if (cartLineItemsPromise) {
 				return cartLineItemsPromise;
 
 			}
-			var includeParams = [
-				ConfigurationDataService.includeConstants.CART_LINES,
-				ConfigurationDataService.includeConstants.CHARGE_LINES, 
-				ConfigurationDataService.includeConstants.RULE_ACTIONS,
-				ConfigurationDataService.includeConstants.PRICE_RAMPS
-					
-			];
-			var requestPromise = ConfigurationDataService.createCartRequestDO(null, null, null, null, includeParams).then(function(cartRequest) {
-				return RemoteService.getCartLineItems(cartRequest);
-			});
+			cartLineItemsPromise = getCart().then(function (result) {
+				//Cache various request details
+				AttributesCache.putAttributeRules(result.attributeRules);
+				AttributesCache.putAttributeMatrices(result.attributeMatrices);
+				FieldExpressionCache.putFieldExpressions(result.appliedExpressionInfos);
 
-			cartLineItemsPromise = requestPromise.then(function(result) {
-				var lineItemData = result.lineItems;
-				LineItemCache.putLineItems(lineItemData);
-				ConstraintRuleDataService.updateRuleActions(result.ruleActions);				
-				return updateLineItemArray();
+				//Merge request lines with cache
+				LineItemCache.putLineItemDOs(result.lineItems, createLineItemModel);				
+				//update the constraint rule actions
+				ConstraintRuleDataService.updateRuleActions(result.ruleActions);
+				//Schedule a check for repricing
+				ActionQueueService.scheduleAction('finish');
+				//Load cached items and return the array
+				return refreshItemsFromCache();
+
 			});
 			return cartLineItemsPromise;
+
+		}
+
+		/**
+		 *	Get the totals items. 
+		 * @return {[type]} [description]
+		 */
+		function getCartTotalLines() {
+			if (totalItemsArray && totalItemsArray.length) {
+				return $q.when(totalItemsArray);
+
+			} else if (cartTotalsPromise) {
+				return cartTotalsPromise;
+
+			}
+			cartTotalsPromise = getCart().then(function (result) {
+				return updateTotalItemArray(result.totalItems);
+
+			});
+			return cartTotalsPromise;
 
 		}
 
@@ -193,7 +350,6 @@
 		function getLineItem(txnPLN) {
 			return getCartLineItems().then(function(result) {
 				return getLineItemDetails(txnPLN);
-				// 	return LineItemCache.getLineItem(txnPLN);
 			});
 
 		}
@@ -218,49 +374,50 @@
 				return $q.reject('Could not get details: txnPrimaryLineNumber undefined.');
 
 			}
-			var lineItemDO = LineItemCache.getLineItem(txnPLN);
-			//ToDo: fix this awful conditional (also, namespace issues)
-			if (LineItemSupport.getIsItemDetailed(lineItemDO)) {
-				return $q.when(lineItemDO);
+			var lineItem = LineItemCache.getLineItem(txnPLN);
+			if (lineItem == null) {
+				return $q.reject('No Line Item for txnPrimaryLineNumber: ' + txnPLN);
 
 			}
-			var lineItems = [LineItemSupport.cloneDeep(lineItemDO)];
+			var lineItemDO = lineItem.lineItemDO;
+			if (LineItemSupport.getIsItemDetailed(lineItemDO)) {
+				return $q.when(lineItem);
 
+			}
+
+			var lineItems = [LineItemSupport.cloneDeep(lineItemDO)];
 			var includeParams = [
 				ConfigurationDataService.includeConstants.CART_LINES,
 				ConfigurationDataService.includeConstants.OPTION_LINES,
 				ConfigurationDataService.includeConstants.ATTRIBUTE_VALUES,
+				ConfigurationDataService.includeConstants.ATTRIBUTE_RULES,
+				ConfigurationDataService.includeConstants.FIELD_EXPRESSIONS,
 				ConfigurationDataService.includeConstants.PRICE_RAMPS
 					
 			];
-			var requestPromise = ConfigurationDataService.createCartRequestDO(lineItems, null, false, false, includeParams).then(function(detailRequst){
-				return RemoteService.getLineItemDetails(detailRequst);
-			});			
-			
-			return requestPromise.then(function(response) {
-				var responseLineItem = response.lineItems[0];
-				if (responseLineItem) {
-					LineItemCache.putLineItem(responseLineItem);
+			return ConfigurationDataService
+					.createCartRequestDO(lineItems, null, false, false, includeParams)
+					.then(function(detailRequst) {
+						return RemoteService.getLineItemDetails(detailRequst);
+					})
+					.then(function(result) {
+						var responseDO = result.lineItems[0];
+						//update attribute rule cache
+						AttributesCache.putAttributeRules(result.attributeRules);
+						//update expression cache
+						FieldExpressionCache.putFieldExpressions(result.appliedExpressionInfos);
+						//Merge in the line item data
+						if (responseDO) {
+							lineItem.mergeLineItemDO(responseDO);
 
-				} else {
-					return $q.reject('No Line Item for txnPrimaryLineNumber: ' + txnPLN);
+						} 
+						// else {
+						// 	return $q.reject('No Line Item for txnPrimaryLineNumber: ' + txnPLN);
 
-				}
-				var resultItem = LineItemCache.getLineItem(txnPLN);
-				if (!resultItem.optionLines) {
-					resultItem.optionLines = [];
+						// }
+						return lineItem;
 
-				}
-				if (!resultItem.chargeLines[0].lineItemSO[nsPrefix + 'AttributeValueId__r']) {
-					resultItem.chargeLines[0].lineItemSO[nsPrefix + 'AttributeValueId__r'] = {};
-
-				}
-				return resultItem;
-
-				// }
-				// return lineItemDO;
-
-			});
+					});
 
 		}
 
@@ -289,29 +446,7 @@
 			});
 
 		}
-
-
-		/**
-		 * 
-		 * @return {[type]} [description]
-		 */
-		function getCartTotalsDisplayData() {
-			if (totalItemsArray && totalItemsArray.length) {
-				return $q.when(totalItemsArray);
-
-			}
-			var includeParams = [ConfigurationDataService.includeConstants.TOTAL_ITEMS];
-			
-			return ConfigurationDataService.createCartRequestDO(null, null, null, true, includeParams).then(function(cartRequest){
-				return RemoteService.getCart(cartRequest).then(function (result) {
-					return updateTotalItemArray(result.totalItems);
-
-				});
-			});
-			
-
-		}
-
+		
 		/**
 		 * 
 		 * @return {[type]} [description]
@@ -367,23 +502,24 @@
 		}
 
 		function addLineItemsToCart(lineItems) {
-			//Cache maintains item structure
-			LineItemCache.putTempLineItems(lineItems);
-			updateLineItemArray();
-			ActionQueueService.scheduleAction('add');
-			return ActionQueueService.scheduleAction('finish').then(function (result) {
-				if (lineItems.length == 1) {
-					return lineItems[0];
-				}
-				return lineItems;
-			});
+			LineItemCache.putLineItemDOs(lineItems, createLineItemModel);
+			refreshItemsFromCache();
+			return ActionQueueService
+							.scheduleAction(['update', 'finish'])
+							.then(function (result) {
+								if (angular.isArray(lineItems) && lineItems.length == 1) {
+									return lineItems[0];
+								}
+								return lineItems;
+							});
 		
 		}
 
 		function addCopyToCart(lineItems) {
-			var lineItemArr = [].concat(lineItems);
-			var clones = LineItemSupport.newLineItemsFromClone(lineItemArr);
-			$log.debug('Line item copies: ', clones);
+			var lineItemsToClone = [].concat(lineItems);
+			var clones = _.map(lineItemsToClone, function (nextLine) {
+				return nextLine.getLineItemDOClone();
+			});
 			return addLineItemsToCart(clones);
 
 		}
@@ -395,55 +531,29 @@
 		 */
 		function addToBundle(targetBundleNumber, productDO) {
 			//Ensure array of product DOs
-			var allProductDOs = [].concat(productDO);
-			// $log.debug(' -- Performing addToBundle -- ');
-			// $log.debug('Bundle Number: ', targetBundleNumber);
-			// $log.debug('Products: ', allProductDOs);
-
-			//Get the top-level bundle by PLN/txnPLN
-			//TODO: Support finding within sub-bundles.
-			return getLineItem(targetBundleNumber).then(function (bundleDO) {
-				if (!bundleDO) {
-					return $q.reject('No bundle found for bundle number: ', targetBundleNumber);
-
-				}
-				//Need to retrieve option groups to establish option component to product mapping.
-				var productId = LineItemSupport.getLineItemSO(bundleDO)[nsPrefix + 'ProductId__c'];
-				return OptionDataService.getOptionGroups(productId).then(function (optionGroups) {
-					//Group products by Id for fast lookup.
-					var groupedProducts = _.groupBy(allProductDOs, 'productSO.Id');
-					// $log.debug('Option groups', optionGroups);
-					// $log.debug('Grouped products', groupedProducts);
-					
-					//Loop across all option components within all groups.
-					//TODO: search through sub groups
-					var optionLinePromises = [];
-					_.forEach(optionGroups, function (nextGroup) {
-						_.forEach(nextGroup.options, function (nextOptionComponent) {
-							var componentProductId = nextOptionComponent[nsPrefix + 'ComponentProductId__c'];
-							if (groupedProducts[componentProductId]) {
-								//Create option line and ensure it gets seledted.
-								var newOptionPromise = LineItemSupport.newOptionLineItemForComponent(nextOptionComponent)
-									.then(function (newOptionLine) {
-										LineItemSupport.selectLineItem(newOptionLine);
-										return newOptionLine;
-									});
-								optionLinePromises.push(newOptionPromise);
-								delete groupedProducts[componentProductId]; //add just once
-							}
-						});
-					});
-					// $log.debug('Remaining grouped products (should be none)', groupedProducts);
-					//Wait for all option lines to be completed
-					return $q.all(optionLinePromises);
-
-				}).then(function (newOptionLines) {
-					LineItemSupport.mergeOptionLines(bundleDO.optionLines, newOptionLines, false);
-					return updateBundle(bundleDO);
-
-				});
-
+			var bundleLine = LineItemCache.getLineItem(targetBundleNumber);
+			var optionLines = bundleLine.findOptionLinesForProducts(productDO);
+			_.forEach(optionLines, function (nextOptionLine) {
+				nextOptionLine.select();
 			});
+			return updateBundle(bundleLine);
+
+		}
+		
+		/**
+		 * Remove an option on a particluar bundle. 
+		 * @param targetBundleNumber primary line number of the target bundle
+		 * @param productDO productSO wrapper which is an option
+		 * @return {[type]}                    [description]
+		 */
+		function removeFromBundle(targetBundleNumber, productDO) {
+			//Ensure array of product DOs
+			var bundleLine = LineItemCache.getLineItem(targetBundleNumber);
+			var optionLines = bundleLine.findOptionLinesForProducts(productDO);
+			_.forEach(optionLines, function (nextOptionLine) {
+				nextOptionLine.deselect();
+			});
+			return updateBundle(bundleLine);
 
 		}
 
@@ -452,12 +562,25 @@
 		 * @param {array}	LineItems
 		 * @return {promoise} promise that resolves with newly created line items
 		 */
-		function submitAssetActions(lineItems) {
-			LineItemCache.putTempAssetItems(lineItems);
-			updateLineItemArray();
-			return ActionQueueService.scheduleAction('assetAction').then(function(result){
-				return result;
-			});
+		function submitAssetActions(assetLines) {
+			LineItemCache.putAssetActions(assetLines);
+			return ActionQueueService.scheduleAction('assetAction');
+
+		}
+
+		/** Managing asset actions */			
+		function generatePendingAssetActions() {
+			var tempAssetActions = LineItemCache.getAssetActions();
+			if (tempAssetActions.length === 0) {
+				return undefined;
+			}
+			var hashKey = LineItemCache.getAssetKey();
+			LineItemCache.setAssetKey(hashKey + 1); //increment asset key
+
+			// clone temp actions array
+			LineItemCache.putPendingAssetAction(hashKey, LineItemSupport.cloneDeep(tempAssetActions));
+			LineItemCache.clearAssetActions();
+			return hashKey;
 		}
 
 		/**
@@ -468,29 +591,22 @@
 			//Use helper method to wrap product in line item
 			return LineItemSupport.newLineItemForProduct(product.productSO, product.quantity)
 				.then(function (lineItem) {
-					LineItemCache.putTempLineItems([lineItem]);
-					updateLineItemArray();
-					ActionQueueService.scheduleAction('add');
-					ActionQueueService.scheduleAction('finish');
-					return lineItem;
+					LineItemCache.putLineItemDOs(lineItem, createLineItemModel);
+					refreshItemsFromCache();
+					return ActionQueueService
+									.scheduleAction(['update', 'finish'])
+									.then(function(result) {
+										return lineItem;
+									});
 
 				});
 
 		}
 
 		function updateBundle(lineItem) {
-			var itemArr = [].concat(lineItem);
-			// LineItemSupport.setLineAction(itemArr, 'update');
-
-			// Mark pricing pending for line items.
-			itemArr = LineItemSupport.markPricingPending(itemArr);
-
-			//Cache maintains item structure
-			LineItemCache.putModifiedLineItems(itemArr);
-
-			//return ActionQueueService.scheduleSync();
-			ActionQueueService.scheduleAction('update');
-			return ActionQueueService.scheduleAction('finish');
+			//Should lineItemModel have a function for this?
+			lineItem.checkOptionConfiguration();
+			return ActionQueueService.scheduleAction(['update', 'finish']);
 
 		}
 
@@ -507,14 +623,12 @@
 		function removeFromCart(lineItems) {
 			lineItems = [].concat(lineItems);
 			//Set line action
-			// LineItemSupport.setLineAction(lineItems, 'delete');
 			//Remove all items that haven't been sync'd
 			var needSync = LineItemCache.removeLineItems(lineItems);
-			updateLineItemArray();
+			FieldExpressionCache.updateCacheAfterItemDelete(LineItemCache.getLineItemsByPrimaryLineNumber());
+			refreshItemsFromCache();
 			if (needSync) {
-				// return ActionQueueService.scheduleSync();
-				ActionQueueService.scheduleAction('remove');
-				return ActionQueueService.scheduleAction('finish');
+				return ActionQueueService.scheduleAction(['update', 'finish']);
 
 			}
 			return $q.when(lineItemArray);
@@ -522,115 +636,57 @@
 		}
 
 		/**
-		 * Set one or more line items to have the action 'update' then put them
-		 * 	in the modified in cache, then schedule a sync action
-		 * 	to make sure the update runs.
+		 * Schedule update action which will submit any pending line item changes
+		 * 	to the server for persistence. Does not check for updates to pricing
 		 *
 		 * @param  {[type]} lineItems 
 		 * @return {promise} promise that will resolve with the cart line
 		 *                   items after sync has finished.
 		 */
-		function updateCartLineItems(lineItems) {
-			lineItems = [].concat(lineItems);
-			// LineItemSupport.setLineAction(lineItems, 'update');
-			LineItemCache.putModifiedLineItems(lineItems);
-			// return ActionQueueService.scheduleSync();
-			ActionQueueService.scheduleAction('update');
-			return ActionQueueService.scheduleAction('finish');
+		function updateCartLineItems() {
+			return ActionQueueService
+							.scheduleAction('update')
+							.then(refreshItemsFromCache);
 
 		}
 
 		function resequenceLineItems() {
-			var firstIndex, lastIndex, sequenceValue, primaryLineSO;
-			sequenceValue = 1;
-			firstIndex = 0;
-			lastIndex = lineItemArray.length - 1;
-			for (var itemIndex = firstIndex; itemIndex <= lastIndex; itemIndex += 1) {
-				primaryLineSO = LineItemSupport.getLineItemSO(lineItemArray[itemIndex]);
-				if (primaryLineSO) {
-					primaryLineSO[nsPrefix + 'LineSequence__c'] = sequenceValue;
-					sequenceValue += 1; //increment sequence
-					
-				}
+			var sequenceValue = 1;
+			_.forEach(lineItemArray, function (lineModel) {
+				lineModel.field(nsPrefix + 'LineSequence__c', sequenceValue);
+				sequenceValue += 1;
 
-			}
-			// Need equivalent call for resequence action.
-			// ActionQueueService.scheduleAction('update');
-			// return ActionQueueService.scheduleAction('finish');
+			});
 			return $q.when(lineItemArray);
 
 		}
 
-		// function resequenceLineItems(movedItem, oldIndex, newIndex) {
-		// 	var firstIndex, lastIndex, sequenceValue, primaryLineSO;
-		// 	if (!(angular.isDefined(movedItem) && angular.isDefined(oldIndex) && angular.isDefined(newIndex)) || newIndex == oldIndex) {
-		// 		return $q.when(lineItemArray);
-
-		// 	}
-		// 	if (oldIndex < newIndex) {
-		// 		primaryLineSO = LineItemSupport.getLineItemSO(movedItem);
-		// 		sequenceValue = primaryLineSO[nsPrefix + 'LineSequence__c'];
-		// 		firstIndex = oldIndex;
-		// 		lastIndex = newIndex;
-
-		// 	} else {
-		// 		primaryLineSO = LineItemSupport.getLineItemSO(lineItemArray[newIndex + 1]);
-		// 		sequenceValue = primaryLineSO[nsPrefix + 'LineSequence__c'];
-		// 		firstIndex = newIndex;
-		// 		lastIndex = oldIndex;
-
-		// 	}
-		// 	sequenceValue = sequenceValue ? sequenceValue : firstIndex + 1; //ensure positive sequence
-		// 	for (var itemIndex = firstIndex; itemIndex <= lastIndex; itemIndex++) {
-		// 		primaryLineSO = LineItemSupport.getLineItemSO(lineItemArray[itemIndex]);
-		// 		primaryLineSO[nsPrefix + 'LineSequence__c'] = sequenceValue;
-		// 		sequenceValue++; //increment sequence
-		// 		LineItemCache.putModifiedLineItems(lineItemArray[itemIndex]); //mark item as modified
-
-		// 	}
-		// 	// Need equivalent call for resequence action.
-		// 	// ActionQueueService.scheduleAction('update');
-		// 	// return ActionQueueService.scheduleAction('finish');
-		// 	return $q.when(lineItemArray);
-
-		// }
 
 		/**
-		 * Reprice cart. By defualt, submits all cart lines for update, but 
-		 * 	can be set to only reprice with parameter
-		 * @param  {Boolean} repriceWithoutSubmit
-		 * @return {promise}                      
+		 * Check whether any line items have unsaved changes.
+		 * @return {[type]} [description]
 		 */
-		function repriceCartLineItems(repriceWithoutSubmit) {
-			if (repriceWithoutSubmit === true) {
-				ActionQueueService.scheduleAction('reprice');
+		function checkForPendingLineItems() {
+			return _.some(lineItemArray, function (lineModel) {
+				return lineModel.checkForPendingChanges();
 
-			} else {
-				LineItemCache.putModifiedLineItems(lineItemArray);
-				ActionQueueService.scheduleAction('update');
-				ActionQueueService.scheduleAction('reprice');
-
-			}
-			return ActionQueueService.scheduleAction('finish');
+			});
 
 		}
 
 		/**
-		 * Set one or more line items to have the action 'configure' then put them
-		 * 	in the modified in cache, then schedule a sync action
-		 * 	to make sure the update runs.
-		 *
-		 * @param  {[type]} lineItems 
-		 * @return {promise} promise that will resolve with the cart line
-		 *                   items after sync has finished.
+		 * Reprice cart. By defualt, submits all cart lines for update, but 
+		 * 	can be set to only reprice with parameter
+		 * @param  {Boolean} repriceWithoutUpdate
+		 * @return {promise}                      
 		 */
-		function configureCartLineItems(lineItems) {
-			lineItems = [].concat(lineItems);
-			// LineItemSupport.setLineAction(lineItems, 'update');
-			LineItemCache.putModifiedLineItems(lineItems);
-			// return ActionQueueService.scheduleSync();
-			ActionQueueService.scheduleAction('update');
-			return ActionQueueService.scheduleAction('finish');
+		function repriceCartLineItems(repriceWithoutUpdate) {
+			var actionsToSchedule = ['reprice', 'finish'];
+			if (repriceWithoutUpdate !== true) {
+				actionsToSchedule.push('update');
+
+			}
+			return ActionQueueService.scheduleAction(actionsToSchedule);
 
 		}
 
@@ -648,96 +704,88 @@
 		}
 
 		/**
-		 * Get the javscript-calculated total price. 
 		 * 
-		 * @return {number} total
-		 */
-		function getCartTotal() {
-			return LineItemCache.getLineItems().total;
-
-		}
-
-		/**
+		 * Register the functions used to sync the cache with the server. 
+		 * Each action checks if a request is necessary and returns a promise that
+		 * 	resolves when its request is complete.
+		 * 	
 		 * If another action should be executed, add it here.
 		 * 
-		 * Builds a queue of functions for synchronizing the cache with 
-		 * 	the server. Each action checks if a request should be made,
-		 * 	and returns a promise that resolves when its request is complete.
-		 * Actions that may 
-		 * 	
-		 * Order of actions:
-		 * 	1: If there are modified items, send them in an update action.
-		 * 	2: If there are temporary additions, the temp line
-		 * 			items are made pending and a request to add them is
-		 * 			submitted. 
-		 * 	3: If there are temp deletions, those are made pending 
-		 * 			and a request to remove them is submitted.
-		 *  ?: TODO: Constraint rules go here
-		 * 	4: If there are items with price pending, a request 
-		 * 			is sumbmitted to continue processing pricing.
-		 * 	5: A final action is always added. This may schedule
-		 * 			another sync event (if price is pending), and it
-		 * 			resolves by getting items from the cart. 
+		 * Standad queue of actions:
+		 * 	1: Extract and submit all pending changes to line item models. This may be any
+		 * 			number of updates, additions, or deletions. This will run constraint rules.
+		 * 	2: Check the cache of asset actions that need to be submitted. When complete,
+		 * 			add the resulting line items to the cache.
+		 * 	3: If there is an indication that pricing is pending, make a call
+		 * 			to the server to reprice.
+		 * 	4: A "finish" 
 		 * 			
-		 * @return {Array of Functions} the actions in the order to execute.
 		 */
 		function registerAllActions() {
 			//Going to have an action that combines update, add, and remove
-			// ActionQueueService.registerAction(processLineItems, 110, 'processLineItems');
 			ActionQueueService.registerAction(update, 100, 'update');
 			ActionQueueService.registerAction(assetAction, 90, 'assetAction');
-			ActionQueueService.registerAction(add, 80, 'add');
-			ActionQueueService.registerAction(remove, 70, 'remove');
 			ActionQueueService.registerAction(reprice, 60, 'reprice');
-			ActionQueueService.registerAction(finish, 50, 'finish');
+			ActionQueueService.registerAction(finish, 0, 'finish');
 
 			/**
 			 * For now, just pass the rejected promise up.
 			 */
 			function onRejection(reason) {
+				PageErrorDataService.add([reason]);
 				return $q.reject(reason);
 
 			}
 
 			function update() {
-				var pendingUpdatesKey = LineItemCache.generatePendingUpdates();
-				if (pendingUpdatesKey) {
-					var pendingUpdates = LineItemCache.getPendingUpdates(pendingUpdatesKey);
-					LineItemSupport.setLineAction(pendingUpdates, 'update');
-					//May want to leave out TOTAL_ITEMS and just let reprice action handle that
-					var includeParams = [
-						ConfigurationDataService.includeConstants.CART_LINES,
-						ConfigurationDataService.includeConstants.CHARGE_LINES,
-						ConfigurationDataService.includeConstants.ATTRIBUTE_VALUES,
-						ConfigurationDataService.includeConstants.OPTION_LINES,
-						ConfigurationDataService.includeConstants.RULE_ACTIONS,
-						ConfigurationDataService.includeConstants.TOTAL_ITEMS,
-						ConfigurationDataService.includeConstants.PRICE_RAMPS
-					];
-					var actionPromise = ConfigurationDataService.createCartRequestDO(pendingUpdates, totalItemsArray, true, false, includeParams).then(function(cartRequest){
-						return RemoteService.performAction(cartRequest);
-					});
-					
-					return actionPromise.then(
-							function(result) {
-								var lineItemData = result.lineItems;
-								LineItemCache.putLineItems(lineItemData, pendingUpdatesKey);
-								ConstraintRuleDataService.updateRuleActions(result.ruleActions);
-								PageErrorDataService.updatePageErrors(result.pageErrors);
-								updateTotalItemArray(result.totalItems);
-								return updateLineItemArray();
-
-							}, 
-							onRejection
-					);
+				var pendingLineItemDOs = LineItemCache.getLineItemDOChanges();
+				if (!pendingLineItemDOs || pendingLineItemDOs.length === 0) {
+					//Return immediately if no pending changes detected.
+					return $q.when(lineItemArray);
 
 				}
+
+				//May want to leave out TOTAL_ITEMS and just let reprice action handle that
+				var includeParams = [
+					ConfigurationDataService.includeConstants.CART_LINES,
+					ConfigurationDataService.includeConstants.CHARGE_LINES,
+					ConfigurationDataService.includeConstants.ATTRIBUTE_VALUES,
+					ConfigurationDataService.includeConstants.ATTRIBUTE_RULES,
+					ConfigurationDataService.includeConstants.FIELD_EXPRESSIONS,
+					ConfigurationDataService.includeConstants.OPTION_LINES,
+					ConfigurationDataService.includeConstants.RULE_ACTIONS,
+					ConfigurationDataService.includeConstants.TOTAL_ITEMS,
+					ConfigurationDataService.includeConstants.PRICE_RAMPS
+				];
+				var actionPromise = ConfigurationDataService.createCartRequestDO(pendingLineItemDOs, totalItemsArray, true, false, includeParams)
+					.then(function (cartRequest) {
+						return RemoteService.performAction(cartRequest);
+					});
+				
+				return actionPromise.then(
+						function(result) {
+							ConstraintRuleDataService.updateRuleActions(result.ruleActions);							
+							PageErrorDataService.clear().add(result.pageErrors.errorMessages);
+							updateTotalItemArray(result.totalItems);
+							
+							AttributesCache.putAttributeRules(result.attributeRules);
+							FieldExpressionCache.putFieldExpressions(result.appliedExpressionInfos);
+							LineItemCache.putPricePendingInfo(result.pricePendingInfo);
+							//!--uses info from various caches to init the line item model
+							LineItemCache.putLineItemDOs(result.lineItems, createLineItemModel); 
+							LineItemCache.removeLineItems(result.deletedPrimaryLineNumbers, true);
+
+							return refreshItemsFromCache();
+
+						}, 
+						onRejection
+				);
 
 			}
 
 			function assetAction() {
-				var pendingAssetActionsKey = LineItemCache.generatePendingAssetActions();
-				if(pendingAssetActionsKey) {
+				var pendingAssetActionsKey = generatePendingAssetActions();
+				if (pendingAssetActionsKey) {
 					var reqObj = {};
 					reqObj.lineItems = LineItemCache.getPendingAssetActions(pendingAssetActionsKey);
 					//Assets may want more
@@ -747,88 +795,32 @@
 
 					return requestPromise.then(
 							function(result) {
-								if(!result.lineItems) {
+								if (!result.lineItems) {
 									// ERROR!
 									return result;
+
 								} else {
 									var lineItemData = result.lineItems;
-									LineItemCache.putLineItems(lineItemData, pendingAssetActionsKey);
-									return updateLineItemArray();
+									PageErrorDataService.add(result.pageErrors.errorMessages);
+									LineItemCache.clearPendingAssetActions(pendingAssetActionsKey);
+									LineItemCache.putLineItemDOs(lineItemData, createLineItemModel);
+									return refreshItemsFromCache();
+
 								}
+
 							},
 							onRejection
 					);
 				} 
 			}
 
-			function add() {
-				var pendingAdditionsKey = LineItemCache.generatePendingAdditions();
-				if (pendingAdditionsKey) {
-					var pendingAdditionItems = LineItemCache.getPendingAdditions(pendingAdditionsKey);
-					LineItemSupport.setLineAction(pendingAdditionItems, 'add');
-					var includeParams = [
-						ConfigurationDataService.includeConstants.CART_LINES,
-						ConfigurationDataService.includeConstants.CHARGE_LINES,
-						ConfigurationDataService.includeConstants.ATTRIBUTE_VALUES,
-						ConfigurationDataService.includeConstants.OPTION_LINES,
-						ConfigurationDataService.includeConstants.RULE_ACTIONS,
-						ConfigurationDataService.includeConstants.TOTAL_ITEMS,
-						ConfigurationDataService.includeConstants.PRICE_RAMPS
-					];
-					var actionPromise = ConfigurationDataService.createCartRequestDO(pendingAdditionItems, null, true, false, includeParams).then(function(cartRequest){
-						return RemoteService.addToCart(cartRequest);
-					});
-					
-					return actionPromise.then(
-							function(result) {
-								var lineItemData = result.lineItems;
-								LineItemCache.putLineItems(lineItemData, pendingAdditionsKey);
-								ConstraintRuleDataService.updateRuleActions(result.ruleActions);
-								PageErrorDataService.updatePageErrors(result.pageErrors);
-								updateTotalItemArray(result.totalItems);
-								return updateLineItemArray();
-
-							}, 
-							onRejection
-					);
-
-				}
-
-			}
-
-			function remove() {
-				var pendingDeletionsKey = LineItemCache.generatePendingDeletions();
-				if (pendingDeletionsKey) {
-					var pendingDeletionItems = LineItemCache.getPendingDeletions(pendingDeletionsKey);
-					LineItemSupport.setLineAction(pendingDeletionItems, 'delete');
-					var includeParams = [
-						ConfigurationDataService.includeConstants.CART_LINES,
-						ConfigurationDataService.includeConstants.CHARGE_LINES,
-						ConfigurationDataService.includeConstants.RULE_ACTIONS,
-						ConfigurationDataService.includeConstants.TOTAL_ITEMS
-					];
-
-					var actionPromise = ConfigurationDataService.createCartRequestDO(pendingDeletionItems, null, true, false, includeParams).then(function(cartRequest){
-						return RemoteService.deleteLineItems(cartRequest);
-					});
-					 
-					return actionPromise.then(
-							function(result) {
-								var lineItemData = result.lineItems;
-								LineItemCache.putLineItems(lineItemData, pendingDeletionsKey);
-								ConstraintRuleDataService.updateRuleActions(result.ruleActions);
-								PageErrorDataService.updatePageErrors(result.pageErrors);
-								updateTotalItemArray(result.totalItems);
-								return updateLineItemArray();
-
-							}, 
-							onRejection
-					);
-
-				}
-
-			}
-
+			/**
+			 * Make a call to the server to reprice the cart lines. When the remote action is finished:
+			 * 		- Resulting changes to line items are merged into the cache. 
+			 * 		- A call to finish() is made to check whether another round of pricing is needed.
+			 * 		
+			 * @return {Promise} resolves with cart lines when pricing is done
+			 */
 			function reprice() {
 				var includeParams = [
 					ConfigurationDataService.includeConstants.CART_LINES,
@@ -839,18 +831,21 @@
 					ConfigurationDataService.includeConstants.PRICE_RAMPS
 
 				];
-				var actionPromise = ConfigurationDataService.createCartRequestDO(null, null, false, true, includeParams).then(function(cartRequest){
-					return RemoteService.updatePrice(cartRequest);
-				});
+				var actionPromise = ConfigurationDataService.createCartRequestDO(null, null, false, true, includeParams)
+					.then(function (cartRequest) {
+						return RemoteService.updatePrice(cartRequest);
+					});
 
 				return actionPromise.then(
 						function(result) {
+
 							var lineItemData = result.lineItems;
 							var totalsData = result.totalItems;
 							updateTotalItemArray(totalsData);
-							LineItemCache.putLineItems(lineItemData);
-							PageErrorDataService.updatePageErrors(result.pageErrors);
-							return updateLineItemArray();
+							LineItemCache.putLineItemDOs(lineItemData, createLineItemModel);
+							PageErrorDataService.add(result.pageErrors.errorMessages);
+							LineItemCache.putPricePendingInfo(result.pricePendingInfo);
+							return finish();
 
 						}, 
 						onRejection
@@ -858,14 +853,21 @@
 
 			}
 
+			/**
+			 * Check whether there is still price pending. If there is, execute
+			 * 	another pricing call with reprice(). Otherwise, just return the
+			 * 	final collection of line items. Checking for pricing has been pulled
+			 * 	out of the cache service for clarity
+			 * 	
+			 * @return {Promise} resolves with cart lines when pricing is done.
+			 */
 			function finish() {
+				refreshItemsFromCache();
 				if (LineItemCache.getIsPricePending()) {
-					ActionQueueService.scheduleAction('reprice');
-					ActionQueueService.scheduleAction('finish');
-
+					return reprice();
 
 				}
-				return updateLineItemArray();
+				return $q.when(lineItemArray);
 
 			}
 

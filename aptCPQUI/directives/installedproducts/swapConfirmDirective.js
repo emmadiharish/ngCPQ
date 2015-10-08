@@ -167,15 +167,22 @@
 			// AssetService.loadingDiv = true; // show spinner while swap is in progress
 			ctrlRef.loading = true;
 			AssetService.requestAssetAction(lineItemDOList).then(function(result){
-				// unselect all objects
-				AssetService.resetLineSelection();
-				AssetService.currLineSelectionMap = {}; // clear the selection map
-				AssetService.disableActions = true;
-				AssetService.resetDisableActionsObj(); // disable all action buttons
-				// AssetService.loadingDiv = false;
-				ctrlRef.loading = false;
-				$log.debug("Swap finished! " + JSON.stringify(result));
-				$state.go('assets');
+				try {
+					// unselect all objects
+					AssetService.resetLineSelection();
+					AssetService.currLineSelectionMap = {}; // clear the selection map
+					AssetService.disableActions = true;
+					AssetService.resetDisableActionsObj(); // disable all action buttons
+					// AssetService.loadingDiv = false;
+					ctrlRef.loading = false;
+					// result.forEach(function(elem){
+					// 	$log.debug(JSON.stringify(elem.LineItemModel.lineItemDO)); // since result gets wrapped in LineItemModel
+					// });
+				} catch(error) {
+					$log.error(error.message);
+				} finally {
+					$state.go('assets');
+				}
 			});
 		};
 

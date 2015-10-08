@@ -8,24 +8,98 @@
 		'systemConstants',
 		'aptBase.RemoteService',
 		'ConfigurationDataService',
-		'CatalogCache',
-		'CartDataService',
 		'AttributesCache'
 	 ];
 
-	function AttributeDataService($q, $log, systemConstants, RemoteService, ConfigurationDataService, CatalogCache, CartDataService , AttributesCache) {
+	function AttributeDataService($q, $log, systemConstants, RemoteService, ConfigurationDataService, AttributesCache) {
 		var service = this;
 		var nsPrefix = systemConstants.nsPrefix;
-		var attributeGroupsPromises = {};
 
-		service.getAttributeGroups = getAttributeGroups;
-		service.getAttributeValueSO = getAttributeValueSO;
+		/** Storing attribute requests */
+		var outstandingInfoRequest = $q.when(true);
+		var pendingProducts = [];
+		var pendingProductIds = {};
+		//Groups
+		var attributeGroupPromises = {};
+		//Rules
+		var attributeRulePromises = {};
+		//Matrices
+		var attributeMatrixPromisses = {};
+		//Fields
+		var attributeFieldRequest;
+
+		/** Attach service methods */
 		service.getAttributeFields = getAttributeFields;
-		service.newAttributeValueSO = newAttributeValueSO;
+		service.getAttributeGroups = getAttributeGroups;
 		service.getAttributeRules = getAttributeRules;
+		service.getAttributeMatricesForProduct = getAttributeMatricesForProduct;
+		service.newAttributeValueSO = newAttributeValueSO;
+		// service.getAttributeValueSO = getAttributeValueSO;
+
+
+		/** -- Method declarations -- */
+
+		function queueProductIdForRequest(productId) {
+			if (!productId || pendingProductIds[productId]) {
+				return;
+
+			}
+			var product  = {
+				"Id": productId,
+			};
+			product[nsPrefix + 'HasAttributes__c'] = true;
+			// product[nsPrefix + 'HasOptions__c'] = true;
+			pendingProducts.push(product);
+			pendingProductIds[productId] = true;
+
+		}
+
+		function getProductsQueuedForRequest() {
+			var queued = pendingProducts;
+			pendingProductIds = {};
+			pendingProducts = [];
+			return queued;
+
+		}
+
+		function getAttributeInfo() {
+			if (!pendingProducts || pendingProducts.length === 0) {
+				return outstandingInfoRequest;
+
+			}
+			var newOutstandingRequest = outstandingInfoRequest.then(function (previousResult) {
+				var includeParams = ["attributeGroups", "attributeRules", "attributeMatrices"];
+				var requestProducts = getProductsQueuedForRequest();
+				if (requestProducts.length === 0) {
+					//Already handled -- don't submit;
+					return previousResult;
+
+				}
+				var requestPromise = ConfigurationDataService.createCatalogRequestDO(null, null, null, includeParams, requestProducts).then(function (attributeRequest) {
+					return RemoteService.getProductDetails(attributeRequest);	
+				
+				});
+				return requestPromise.then(function (response) {
+					for (var productIndex = requestProducts.length - 1; productIndex >= 0; productIndex--) {
+						var nextId = requestProducts[productIndex].Id;
+						AttributesCache.putAttributeGroupsForProduct(nextId, response.attributeGroups[nextId]);
+						AttributesCache.putAttributeRulesForProduct(nextId, response.attributeRules[nextId]);	
+						AttributesCache.putAttributeMatricesForProduct(nextId, response.attributeMatrices[nextId]);						
+					}
+
+					return response;
+				});
+
+			});
+			outstandingInfoRequest = newOutstandingRequest;
+			return outstandingInfoRequest;
+
+		}
 
 		/**
-		 * get attribute groups for given productId
+		 * Get attribute groups for given productId.
+		 * Improvment: accumulate product Ids and submit request with 
+		 * 	multiple products
 		 */
 		function getAttributeGroups(productId) {
 			var cachedAttributeGroups = AttributesCache.getAttributeGroupsForProduct(productId);
@@ -33,52 +107,17 @@
 			if (cachedAttributeGroups) {
 				return $q.when(cachedAttributeGroups);
 				
-			} else if (attributeGroupsPromises[productId]) {
-				return attributeGroupsPromises[productId];
+			} else if (attributeGroupPromises[productId]) {
+				return attributeGroupPromises[productId];
 
 			}
-
-			var includeParams = ["attributeGroups"];
-
-			//TODO: generalize creating this request.
-			var product  = {
-				"Id": productId,
-			};
-			product[nsPrefix + 'HasAttributes__c'] = true;
-			product[nsPrefix + 'HasOptions__c'] = true;
-			var products = [product];
-
-			var requestPromise = ConfigurationDataService.createCatalogRequestDO(null, null, null, includeParams, products).then(function(attributeGroupRequest) {
-				return RemoteService.getProductDetails(attributeGroupRequest);	
+			queueProductIdForRequest(productId);
+			var infoPromise = getAttributeInfo();
+			attributeGroupPromises[productId] = infoPromise.then(function () {
+				return AttributesCache.getAttributeGroupsForProduct(productId);
+				
 			});
-			
-			attributeGroupsPromises[productId] = requestPromise.then(function(response) {
-				AttributesCache.putAttributeGroupsForProduct(productId, response.attributeGroups[productId]);
-				return response.attributeGroups[productId];
-
-			});
-			return attributeGroupsPromises[productId];
-
-		}
-
-		/**
-		 * get attribute value so for given lineItemId
-		 */
-		function getAttributeValueSO(txnPrimaryLineNumber) {
-			return CartDataService.getLineItemDetails(txnPrimaryLineNumber).then(function (lineItem) {
-				var primaryLineSO = lineItem.chargeLines[0].lineItemSO;
-				if (!primaryLineSO[nsPrefix + 'AttributeValueId__r']) {
-					$log.debug('Making new ASO');
-					return newAttributeValueSO(primaryLineSO[nsPrefix + 'ProductId__c']).then(function (valueSO) {
-						primaryLineSO[nsPrefix + 'AttributeValueId__r'] = valueSO;
-						return valueSO;
-
-					});
-
-				}
-				return primaryLineSO[nsPrefix + 'AttributeValueId__r'];
-
-			});
+			return attributeGroupPromises[productId];
 
 		}
 
@@ -87,50 +126,27 @@
 		 */
 		function getAttributeFields() {
 			var attributeFields = AttributesCache.getAttributeFields();
-			
 			if(attributeFields) {
 				return $q.when(attributeFields);
 				
+			} else if (attributeFieldRequest) {
+				return attributeFieldRequest;
+
 			}
 		
 			var includeParams = ["attributeFields"];
-			
-			var requestPromise = ConfigurationDataService.createCatalogRequestDO(null, null, null, includeParams, null).then(function(attributeFieldRequest){
-				return RemoteService.getConfigurationData(attributeFieldRequest);	
+			var requestPromise = ConfigurationDataService.createCatalogRequestDO(null, null, null, includeParams, null).then(function(requestDO) {
+				return RemoteService.getConfigurationData(requestDO);
+
 			});
 			
-			return requestPromise.then(function(response) {
+			attributeFieldRequest = requestPromise.then(function(response) {
 				AttributesCache.putAttributeFields(response.attributeFields);
 				return response.attributeFields;
 
 			});
+			return attributeFieldRequest;
 
-		}
-
-		/**
-		 * upsert Attribute Value SO for the given Line Item. 
-		 */ 
-		function upsertAttributesValueSO(lineItemId, attributeSO) {
-			// if(!attributeSO[nsPrefix + 'LineItemId__c']) {
-			// 		attributeSO[nsPrefix + 'LineItemId__c'] = luineItemId;
-	 
-			// }
-
-			// var lineItemDO = LineItemCache.getLineItem(lineItemId); // Use Cart Service to get the lineItemDO
-			// lineItemDO.attributeValueSO = attributeSO;
-				 
-			// var lineItems = [];
-			// lineItems.push(lineItemDO);
-			// var updateAttributesRequest = ConfigurationDataService.createCartRequestDO(lineItems, false, false, null);
-				 
-			// var requestPromise = RemoteService.upsertAttributesConfiguration(updateAttributesRequest);
-			// return requestPromise.then(function(response) {
-			// 	var valueSO = response[0].attributeValueSO;
-			// 	AttributesCache.putAttributeValueSOForLineItem(lineItemId, valueSO); // update attributes in lineItemCache
-		
-			// 	return response;
-						 
-			// });
 		}
 
 		/**
@@ -158,21 +174,54 @@
 			
 		}
 
+		/**
+		 * Get attribute rules for the given product Id
+		 * @param productId
+		 * @return a promise which will resolve to an array of rules for the product
+		 */
 		function getAttributeRules(productId) {
-			var rulesForProduct = AttributesCache.getAttributeRules(productId);
-			if(typeof(rulesForProduct) !== 'undefined') {
-				return $q.when(rulesForProduct);				
+			var cachedAttributeRules = AttributesCache.getAttributeRulesForProduct(productId);
+			if (cachedAttributeRules) {
+				return $q.when(cachedAttributeRules);
+				
+			} else if (attributeRulePromises[productId]) {
+				return attributeRulePromises[productId];
+
 			}
 
-			var requestPromise = RemoteService.getAttributeRules(productId);
-			return requestPromise.then(function(response) {				
-				AttributesCache.putAttributeRules(productId, response);
-				return response;
-
+			queueProductIdForRequest(productId);
+			var infoPromise = getAttributeInfo();
+			attributeRulePromises[productId] = infoPromise.then(function () {
+				return AttributesCache.getAttributeRulesForProduct(productId);
+				
 			});
+			return attributeRulePromises[productId];
+
+		}
+
+		/**
+		 * Get attribute matrices for the given product
+		 * @param productId the context product id
+		 * @return a promise which will resolve to an array of matrix infos for the product
+		 */
+		function getAttributeMatricesForProduct(productId) {
+			var cachedMatrices = AttributesCache.getAttributeMatricesForProduct(productId);
+			if (cachedMatrices) {
+				return $q.when(cachedMatrices);
+				
+			} else if (attributeMatrixPromisses[productId]) {
+				return attributeMatrixPromisses[productId];
+
+			}
+
+			queueProductIdForRequest(productId);
+			var infoPromise = getAttributeInfo();
+			attributeMatrixPromisses[productId] = infoPromise.then(function () {
+				return AttributesCache.getAttributeMatricesForProduct(productId);
+				
+			});
+			return attributeMatrixPromisses[productId];
 		}
 	}
-
-	
 
 })();

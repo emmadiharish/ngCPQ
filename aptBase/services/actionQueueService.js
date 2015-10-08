@@ -48,8 +48,13 @@
 
 			}
 			//Calculate values
-			precedence = Number(precedence);
-			precedence = precedence ? Math.min(precedence, max) : max;
+			if (!angular.isNumber(precedence)) {
+				precedence = max;
+				
+			} else {
+				precedence = Math.min(precedence, max);
+				
+			}
 			hashVal = actionKey ? hashObject(actionKey) : hashObject(functionObject);
 			//Store information
 			//existed = hashedActionsMap[hashVal];
@@ -84,16 +89,39 @@
 	
 
 		/**
-		 * Schedule a particular action.
-		 * 
-		 * @return {promise} tail of the event chain at scheduling time.
+		 * Schedule a particular action or array of actions. Actions should be 
+		 * 	in scheudled using the same function object or prototype with
+		 * 	which they were registered. 
+		 *
+		 * Note: if parameter is an array, the order of actions does not influence
+		 * 	the order in which actions will be enqueued. Instead, the registered
+		 * 	precedence will be respected.
+		 * 	
+		 * @param {String|Function|Array} actionKey  action or collection of actions
+		 * @return {promise} tail of the event chain. Resolves when all actions complete.
 		 */
 		function scheduleAction(actionKey) {
-			var newSchedule = queueByPrecedence(actionKey);
-			// isScheduled = isScheduled || newSchedule;
-			if (!isScheduled) {
-				isScheduled = true;
-				tail = tail.then(fireSync);
+			if (angular.isUndefined(actionKey) || actionKey === null) {
+				return tail;
+
+			}
+			var actionArr = [];
+			if (angular.isArray(actionKey)) {
+				actionArr = actionKey;
+
+			} else {
+				actionArr.push(actionKey);
+
+			}
+			var actionIndex, nextActionKey, newSchedule; 
+			for (actionIndex = 0; actionIndex < actionArr.length; actionIndex += 1) {
+				nextActionKey = actionArr[actionIndex];
+				newSchedule = queueByPrecedence(nextActionKey);
+				if (!isScheduled) {
+					isScheduled = true;
+					tail = tail.then(fireSync);
+
+				}
 
 			}
 			return tail;
@@ -106,28 +134,29 @@
 		 * @return {Boolean}           	True if action becomes scheduled, else False.
 		 */	
 		function queueByPrecedence(actionKey) {
-			var hashVal, actionInfo;
 			if (!actionKey) {
 				return false; //Invalid; do nothing.
 
 			}
-			hashVal = hashObject(actionKey);
-			actionInfo = hashedActionsMap[hashVal];
+			
+			var hashVal = hashObject(actionKey);
+			var actionInfo = hashedActionsMap[hashVal];
 			if (!actionInfo || actionInfo.isScheduled) {
 				return false; //Invalid or already scheduled; do nothing.
 
 			}
-			var actionIndex, nextActionInfo;
-			for (actionIndex = scheduledActionQueue.length - 1; actionIndex >= 0; actionIndex--) {
-				nextActionInfo = scheduledActionQueue[actionIndex];
-				//traversing from end, so stop before greater precedence
-				if (nextActionInfo.precedence > actionInfo.precedence) {
+			
+			var actionIndex = scheduledActionQueue.length;//add at the end for the least precendence action
+			for (var index = 0; index < scheduledActionQueue.length; ++index) {
+				var nextActionInfo = scheduledActionQueue[index];
+				if (actionInfo.precedence > nextActionInfo.precedence) {
+					actionIndex = index;
 					break;
 
 				}
 
 			}
-			actionIndex ++; //compensate because splice inserts before
+			
 			scheduledActionQueue.splice(actionIndex, 0, actionInfo);
 			actionInfo.isScheduled = true;
 			return true;
@@ -200,75 +229,6 @@
 			return nextPromise;
 
 		}
-
-		/** Depricated  -- used before precedence was handled */
-
-		
-		//Used to build and execute one static action queue
-		// service.registerActionQueue = registerActionQueue;
-		// service.scheduleSync = scheduleSync;
-
-
-		/**
-		 * Establish the queue of all actions to execute on a sync.
-		 * Currently a single queue included and is built to run all actions as
-		 * 	they appear in the array.
-		 * 	ToDo: 
-		 * 		- Add functionality to enqueue individual the actions for a particular sync.
-		 * 		- Provide a way of associating funtions with a particular order. 	
-		 *   
-		 * @return {Boolean} whether existing actions are being replaced.
-		 */
-		// function registerActionQueue(newQueue) {
-		// 	var hadQueue = newQueue && newQueue.length;
-		// 	actionQueue = [];
-		// 	Array.prototype.push.apply(actionQueue, newQueue);
-		// 	return hadQueue;
-
-		// }
-		
-
-
-		/**
-		 * Ensure a firing event is scheduled.
-		 *   
-		 * @return {promise} tail of the event chain at scheduling time.
-		 */
-		// function scheduleSync() {
-		// 	if (!isScheduled) {
-		// 		isScheduled = true;
-		// 		tail = tail.then(fireSync);
-
-		// 	}
-		// 	return tail;
-		
-		// }	
-
-
-		/**
-		 * Creates a chain of primises: start with an empty defer, 
-		 * 	and add each function as a "then" to execute when
-		 * 	the previous promise completes.
-		 * The whole chain is constructed, then the head of the chain
-		 * 	is resolved, starting the whole process.
-		 * 	
-		 * @return {promise} the last promise in the chain
-		 */
-		// function fireActionQueue() {
-		// 	var queue = $q.defer();
-		// 	var nextPromise = queue.promise;
-
-		// 	var nextAction;
-		// 	for(var i = 0; i < actionQueue.length; i++) {
-		// 		nextAction = actionQueue[i];
-		// 		nextPromise = nextPromise.then(nextAction);
-				
-		// 	}
-
-		// 	queue.resolve();
-		// 	return nextPromise;
-
-		// }
 		
 	}
 	

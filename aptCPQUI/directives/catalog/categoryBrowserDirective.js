@@ -1,68 +1,68 @@
-(function() {
-  var CategoryBrowser, categoryBrowserCtrl;
+/**
+ * Directive: categoryBrowser
+ * 	Defines category browsing directive
+ *     	parent            <--- Back to 1 level higher in family tree
+ *       sibling
+ *       sibling
+ *       -----------
+ *       sibling         <--- Toggles open to show children if applicable, highlights otherwise
+ *         children      <--- Updates generation list
+ *       -----------
+ */
+;(function() {
+	'use strict';
 
-  categoryBrowserCtrl = function($state, $stateParams, CatalogService) {
-    var self;
-    self = this;
-    self.state = $state.current.name;
-    self.depth = 0;
-    self.parentSref = '#/catalog';
+	angular.module('aptCPQUI').directive('categoryBrowser', CategoryBrowser);
 
-    /*
-    
-      parent            <--- Back to 1 level higher in family tree
-        sibling
-        sibling
-        -----------
-        sibling         <--- Toggles open to show children if applicable, highlights otherwise
-          children      <--- Updates generation list
-        -----------
-     */
-    CatalogService.getCatById($stateParams.catID).then(function(res) {
-      return self.currentCategory = res;
-    });
-    return CatalogService.getCategories().then(function(res) {
-      var categoriesDepth, categoryLineage, modulo;
-      self.categories = res;
-      if ($state.is('category')) {
-        categoryLineage = CatalogService.getAncestors($stateParams.catID, res);
-        categoriesDepth = categoryLineage.length;
-        modulo = categoriesDepth % 2;
-        if (modulo && categoriesDepth > 1) {
-          if (categoryLineage[categoriesDepth - 1].childCategories.length) {
-            self.browseTree = categoryLineage[categoriesDepth - 1];
-            self.parentSref = '#/category/' + categoryLineage[categoriesDepth - 1].parentId;
-          } else {
-            self.browseTree = categoryLineage[categoriesDepth - 2];
-            self.parentSref = '#/category/' + categoryLineage[categoriesDepth - 2].parentId;
-          }
-        } else if (modulo && categoriesDepth <= 1) {
-          self.browseTree = categoryLineage[0];
-          self.parentSref = '#/catalog';
-        } else {
-          self.browseTree = categoryLineage[categoriesDepth - 2];
-        }
-        return self.parentCategoryLabel = self.browseTree.label;
-      }
-    });
-  };
+	CategoryBrowser.$inject = ['systemConstants'];
 
-  categoryBrowserCtrl.$inject = ['$state', '$stateParams', 'CatalogDataService'];
+	function CategoryBrowser(systemConstants) {
+		return {
+			scope: {},
+			controller: CategoryBrowserCtrl,
+			controllerAs: 'catGroup',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/catalog/category-browser-block.html'
+		};
+	};
 
-  CategoryBrowser = function(systemConstants) {
-    var directive;
-    directive = {
-      scope: {},
-      bindToController: true,
-      controller: categoryBrowserCtrl,
-      controllerAs: 'catGroup',
-      templateUrl: systemConstants.baseUrl + '/templates/directives/category-browser-block.html'
-    };
-    return directive;
-  };
+	CategoryBrowserCtrl.$inject = ['$state', '$stateParams', 'CatalogDataService'];
 
-  CategoryBrowser.$inject = ['systemConstants'];
+	function CategoryBrowserCtrl($state, $stateParams, CatalogService) {
+		var ctrl = this;
+		ctrl.state = $state.current.name;
+		ctrl.depth = 0;
+		ctrl.parentSref = '#/catalog';
 
-  angular.module('aptCPQUI').directive('categoryBrowser', CategoryBrowser);
+		CatalogService.getCategory($stateParams.categoryId).then(function(res) {
+			return ctrl.currentCategory = res;
+
+		});
+
+		return CatalogService.getCategories().then(function(res) {
+			ctrl.categories = res;
+			if ($state.is('category')) {
+				var categoryLineage = CatalogService.getAncestors($stateParams.categoryId, res);
+				var categoriesDepth = categoryLineage.length;
+				var modulo = categoriesDepth % 2;
+				if (modulo && categoriesDepth > 1) {
+					if (categoryLineage[categoriesDepth - 1].childCategories.length) {
+						ctrl.browseTree = categoryLineage[categoriesDepth - 1];
+						ctrl.parentSref = '#/category/' + categoryLineage[categoriesDepth - 1].parentId;
+					} else {
+						ctrl.browseTree = categoryLineage[categoriesDepth - 2];
+						ctrl.parentSref = '#/category/' + categoryLineage[categoriesDepth - 2].parentId;
+					}
+				} else if (modulo && categoriesDepth <= 1) {
+					ctrl.browseTree = categoryLineage[0];
+					ctrl.parentSref = '#/catalog';
+				} else {
+					ctrl.browseTree = categoryLineage[categoriesDepth - 2];
+				}
+				return ctrl.parentCategoryLabel = ctrl.browseTree.label;
+			}
+		});
+
+	};
 
 }).call(this);

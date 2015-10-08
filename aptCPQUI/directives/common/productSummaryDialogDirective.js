@@ -4,32 +4,54 @@
 ;(function() {
 	'use strict';
 
-	ProductSummaryDialog.$inject = ['systemConstants'];
 	angular.module('aptCPQUI').directive('productSummaryDialog', ProductSummaryDialog);
 
+	ProductSummaryDialog.$inject = ['systemConstants'];
+
+	function ProductSummaryDialog(systemConstants) {
+
+		function productSummaryLink(scope, elem, attrs, ctrl) {
+			var clickOutside = document.querySelector('html');
+
+			clickOutside.addEventListener('click', function(e) {
+				// e.stopPropagation();
+				ctrl.close();
+				scope.$apply();
+			});
+
+		}
+
+		return {
+			restrict: 'E',
+			controller: ProductSummaryDialogCtrl,
+			link: productSummaryLink,
+			controllerAs: 'productSummary',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + "/templates/directives/common/product-summary.html"
+		};
+	}
+
 	ProductSummaryDialogCtrl.$inject = [
-		'lodash',                            
-		'$scope',
-		'$sce',
-		'systemConstants',
-		'aptBase.i18nService',
-		'CatalogDataService'
-	 ];
-	/**
-	 * Product Summary Dialog controller, used by the directive
-	 */ 
+	                                    'lodash',                            
+	                                    '$scope',
+	                                    '$sce',
+	                                    'systemConstants',
+	                                    'aptBase.i18nService',
+	                                    'CatalogDataService'
+	                                    ];
+
 	function ProductSummaryDialogCtrl(_, $scope, $sce, systemConstants, i18nService, CatalogDataService) {
 		var nsPrefix = systemConstants.nsPrefix;
 		var ctrl = this;
 		ctrl.labels = i18nService.CustomLabel;
 		ctrl.visible = false;
-	
+
 		ctrl.close = function() {
 			this.visible = false;
 			CatalogDataService.isProductSummaryOpen = false;
-			
+
 		};
-		
+
 		ctrl.open = function() {
 			CatalogDataService.getProductSummaryId().then(function(productId) {
 				CatalogDataService.getProductSummary(productId).then(function(result) {
@@ -38,7 +60,7 @@
 					ctrl.visible = true;
 				});
 			});
-			
+
 		};
 
 		/*parsing mimi page layout html to get product title */
@@ -55,43 +77,17 @@
 		};
 
 		$scope.$watch(function () { 
-				return CatalogDataService.isProductSummaryOpen; 
-			},
-       		function(newVal, oldVal) {
-        		if(newVal === true) {
-        			ctrl.open();
-        		}
-      		}
-    	);
+			return CatalogDataService.isProductSummaryOpen; 
+		},
+		function(newVal, oldVal) {
+			if(newVal === true) {
+				ctrl.open();
+			}
+		}
+		);
 
 		return ctrl;
 
 	};
-
-	/**
-	 * Product Summary Dialog Directive
-	 */	
-	function ProductSummaryDialog(systemConstants) {
-
-		function productSummaryLink(scope, elem, attrs, ctrl) {
-			var clickOutside = document.querySelector('html');
-			
-			clickOutside.addEventListener('click', function(e) {
-				// e.stopPropagation();
-				ctrl.close();
-				scope.$apply();
-			});
-			
-		}
-
-		return {
-			restrict: 'E',
-			templateUrl: systemConstants.baseUrl + "/templates/directives/common/product-summary.html",
-			controller: ProductSummaryDialogCtrl,
-			link: productSummaryLink,
-			controllerAs: 'productSummary',
-			bindToController: true
-		};
-	}
 
 }).call(this);

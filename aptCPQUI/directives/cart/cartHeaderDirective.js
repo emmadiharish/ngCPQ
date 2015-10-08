@@ -2,123 +2,122 @@
  * Directive: cartHeaderDirective 
  */
 ;(function() {
-  'use strict';
+	'use strict';
 
-  angular.module('aptCPQUI').directive('cartHeader', CartHeader);
+	angular.module('aptCPQUI').directive('cartHeader', CartHeader);
 
-  cartHeaderCtrl.$inject = [
-                            '$scope',
-                            'lodash',
-                            'aptBase.i18nService',
-                            'CartService'
-                          ];
+	CartHeader.$inject = ['systemConstants'];
 
-  function cartHeaderCtrl ($scope, _, i18nService, CartService) {
-    var headerCtrl;
-    headerCtrl = this;
-    headerCtrl.allSelected = false;
-    headerCtrl.anySelected = false;
-    headerCtrl.labels = i18nService.CustomLabel; 
-    headerCtrl.selectedProductsCount = 0;
-    headerCtrl.itemsPerPage = 10;
-    headerCtrl.currentPage = 1;
-    headerCtrl.productsInCurrentPage = [];
-    headerCtrl.contextProductIds = [];
+	function CartHeader (systemConstants) {
+		return {
+			controller: CartHeaderCtrl,
+			controllerAs: 'cartHeader',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + '/templates/directives/cart/cart-header.html'
+		};
+	}
 
-    function init() {
-      CartService.getCartLineItems().then(function (lineItems) {
-        headerCtrl.lineItems = lineItems;
-      });
-      CartService.getCheckboxModels().then(function (models) {
-        headerCtrl.checkModels = models.all;
-      });
-    }
-    
-    function getContextProductsForCurrentPage() {
-      var Start = (headerCtrl.currentPage - 1) * headerCtrl.itemsPerPage;
-      var End = Start + headerCtrl.itemsPerPage;
-      headerCtrl.contextProductIds = headerCtrl.lineItems.slice(Start, End);
-      return headerCtrl.contextProductIds;
-    }
+	CartHeaderCtrl.$inject = [
+	                          '$scope',
+	                          'lodash',
+	                          'systemConstants',
+	                          'aptBase.i18nService',
+	                          'CartService'
+	                          ];
 
-    function initProductsInCurrentPage() {
-      headerCtrl.productsInCurrentPage = getContextProductsForCurrentPage();
-    }
+	function CartHeaderCtrl ($scope, _, systemConstants, i18nService, CartService) {
+		var headerCtrl;
+		headerCtrl = this;
+		headerCtrl.allSelected = false;
+		headerCtrl.anySelected = false;
+		headerCtrl.labels = i18nService.CustomLabel; 
+		headerCtrl.selectedProductsCount = 0;
+		headerCtrl.itemsPerPage = systemConstants.customSettings.systemProperties.LineItemsPerPage;
+		headerCtrl.currentPage = 1;
+		headerCtrl.productsInCurrentPage = [];
+		headerCtrl.contextProductIds = [];
 
-    headerCtrl.isSelected = function() {
-      if(!headerCtrl.lineItems){
-        return false;
-      }
+		function init() {
+			CartService.getCartLineItems().then(function (lineItems) {
+				headerCtrl.lineItems = lineItems;
+			});
+			CartService.getCheckboxModels().then(function (models) {
+				headerCtrl.checkModels = models.all;
+			});
+		}
 
-      //Following logic counts selected products from all pages
-      var checkedItemCount = _.countBy(headerCtrl.checkModels);
-      headerCtrl.selectedProductsCount = (angular.isDefined(checkedItemCount) && angular.isDefined(checkedItemCount.true)) ? checkedItemCount.true : 0;
-      headerCtrl.anySelected = (headerCtrl.selectedProductsCount > 0);
+		function getContextProductsForCurrentPage() {
+			var Start = (headerCtrl.currentPage - 1) * headerCtrl.itemsPerPage;
+			var End = Start + headerCtrl.itemsPerPage;
+			headerCtrl.contextProductIds = headerCtrl.lineItems.slice(Start, End);
+			return headerCtrl.contextProductIds;
+		}
 
-      //Following logic check all current page products are selected or not.
-      initProductsInCurrentPage();
-      
-      var needsMet = _.reduce(headerCtrl.productsInCurrentPage, function (memo, lineItem) {
-        return memo + (headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] ? 1 : 0);
-      }, 0);
+		function initProductsInCurrentPage() {
+			headerCtrl.productsInCurrentPage = getContextProductsForCurrentPage();
+		}
 
-      headerCtrl.allSelected = (needsMet !== 0 && needsMet === headerCtrl.productsInCurrentPage.length);
+		headerCtrl.isSelected = function() {
+			if(!headerCtrl.lineItems){
+				return false;
+			}
 
-      return headerCtrl.allSelected;
-    }
-    
-    headerCtrl.checkAll = function() {
-      
-      initProductsInCurrentPage();
+			//Following logic counts selected products from all pages
+			var checkedItemCount = _.countBy(headerCtrl.checkModels);
+			headerCtrl.selectedProductsCount = (angular.isDefined(checkedItemCount) && angular.isDefined(checkedItemCount.true)) ? checkedItemCount.true : 0;
+			headerCtrl.anySelected = (headerCtrl.selectedProductsCount > 0);
 
-      headerCtrl.allSelected = !headerCtrl.allSelected;
-      _.each(headerCtrl.productsInCurrentPage, function (lineItem) {
-        headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] = headerCtrl.allSelected;
-      });
-    }
+			//Following logic check all current page products are selected or not.
+			initProductsInCurrentPage();
 
-    headerCtrl.removeCheckedItems = function() {
-      var selectedItems = buildSelection();
-      CartService.removeFromCart(selectedItems);
+			var needsMet = _.reduce(headerCtrl.productsInCurrentPage, function (memo, lineItem) {
+				return memo + (headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] ? 1 : 0);
+			}, 0);
 
-    }
-    
-    headerCtrl.copyCheckedItems = function() {
-      var selectedItems = buildSelection();
-      CartService.addCopyToCart(selectedItems);
-    }
+			headerCtrl.allSelected = (needsMet !== 0 && needsMet === headerCtrl.productsInCurrentPage.length);
 
-    function buildSelection() {
-      var selectedItems = [];
-      _.each(headerCtrl.lineItems, function (lineItem) {
-        if (headerCtrl.checkModels[lineItem.txnPrimaryLineNumber]) {
-          selectedItems.push(lineItem);
-          headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] = false;
-        }
-      });
-      return selectedItems;
-    }
+			return headerCtrl.allSelected;
+		}
 
-    headerCtrl.pageChanged = function (newPage) {
-      headerCtrl.currentPage = newPage;
-    }
+		headerCtrl.checkAll = function() {
 
-    init();
+			initProductsInCurrentPage();
 
-    return headerCtrl;
-  }
+			headerCtrl.allSelected = !headerCtrl.allSelected;
+			_.each(headerCtrl.productsInCurrentPage, function (lineItem) {
+				headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] = headerCtrl.allSelected;
+			});
+		}
 
-  CartHeader.$inject = ['systemConstants'];
+		headerCtrl.removeCheckedItems = function() {
+			var selectedItems = buildSelection();
+			CartService.removeFromCart(selectedItems);
 
-  function CartHeader (systemConstants) {
-    var directive;
-    directive = {
-      templateUrl: systemConstants.baseUrl + '/templates/directives/cart-header.html',
-      controller: cartHeaderCtrl,
-      controllerAs: 'cartHeader',
-      bindToController: true
-    };
-    return directive;
-  }
+		}
+
+		headerCtrl.copyCheckedItems = function() {
+			var selectedItems = buildSelection();
+			CartService.addCopyToCart(selectedItems);
+		}
+
+		function buildSelection() {
+			var selectedItems = [];
+			_.each(headerCtrl.lineItems, function (lineItem) {
+				if (headerCtrl.checkModels[lineItem.txnPrimaryLineNumber]) {
+					selectedItems.push(lineItem);
+					headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] = false;
+				}
+			});
+			return selectedItems;
+		}
+
+		headerCtrl.pageChanged = function (newPage) {
+			headerCtrl.currentPage = newPage;
+		}
+
+		init();
+
+		return headerCtrl;
+	}
 
 }).call(this);

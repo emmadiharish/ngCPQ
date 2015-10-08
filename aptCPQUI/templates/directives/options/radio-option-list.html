@@ -14,11 +14,11 @@
 					<input type="radio" 
 								 ng-click="list.selectNone()"
 								 ng-checked="list.group.hasNoneSelected()" 
-								 id="{{list.group.data.id + list.getLevel()}}-none"
-								 name="{{list.group.data.id + list.getLevel()}}"/>
-					<label for="{{list.group.data.id + list.getLevel()}}-none"></label>
+								 id="{{list.group.groupInfo.id + list.getLevel()}}-none"
+								 name="{{list.group.groupInfo.id + list.getLevel()}}"/>
+					<label for="{{list.group.groupInfo.id + list.getLevel()}}-none"></label>
 				</div>
-				<label for="{{list.group.data.id + list.getLevel()}}-none">
+				<label for="{{list.group.groupInfo.id + list.getLevel()}}-none">
 					{{list.labels.None}}
 				</label>
 			</div>

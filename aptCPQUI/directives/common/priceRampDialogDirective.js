@@ -6,12 +6,27 @@
 
 	angular.module('aptCPQUI').directive('priceRampDialog', PriceRampDialog);
 
+	PriceRampDialog.$inject = ['systemConstants'];
+
+	/**
+	 *  Price Ramp Dialog Directive
+	 */	
+	function PriceRampDialog(systemConstants) {
+		return {
+			restrict: 'E',
+			controller: PriceRampDialogCtrl,
+			controllerAs: 'priceRamp',
+			bindToController: true,
+			templateUrl: systemConstants.baseUrl + "/templates/directives/common/price-ramp.html"
+		};
+	}
+
 	PriceRampDialogCtrl.$inject = [
-		'lodash',                            
-		'systemConstants',
-		'aptBase.i18nService',
-		'CartService'
-	 ];
+	                               'lodash',                            
+	                               'systemConstants',
+	                               'aptBase.i18nService',
+	                               'CartService'
+	                               ];
 
 	/**
 	 * Price Ramp Dialog controller, used by the directive
@@ -22,7 +37,7 @@
 		var ctrl = this;
 		ctrl.labels = i18nService.CustomLabel;
 		ctrl.ramp = CartService.ramp;
-		ctrl.errorMessages = [];
+		ctrl.rampErrors = {};
 
 		activate = function() {
 			CartService.getRampColumns().then(function(result) {
@@ -33,10 +48,11 @@
 		activate();
 
 		ctrl.close = function() {
+			ctrl.rampErrors = {};
 			return CartService.isRampDialogOpen = false;
-			
+
 		};
-		
+
 		ctrl.visible = function() {
 			return CartService.isRampDialogOpen;
 		};
@@ -50,7 +66,7 @@
 		};
 
 		ctrl.hasErrorMessages = function() {
-			return ctrl.errorMessages.length != 0;
+			return Object.keys(ctrl.rampErrors).length > 0;
 		};
 
 		ctrl.getProductName = function() {
@@ -60,40 +76,50 @@
 		};
 
 		ctrl.saveRamp = function() {
-			
-			var errorMessages = [];
 
-			_.each(ctrl.ramp.lineItem.rampLines, function(rampLine, lineIndex) {
-				var startDate = rampLine.lineItemSO[nsPrefix + 'StartDate__c'];
-				var endDate = rampLine.lineItemSO[nsPrefix + 'EndDate__c'];
+			// TODO: Keep Track of Error Messages with Primary Line Number. 
+			// TODO: Sync Server Validation Error 
+			var errorMessagesMap = {};
 
-				if(startDate > endDate) {
-					errorMessages.push('Error on Line '+lineIndex+': Start Date must be before End Date');
+			for(var rampLineIndex = 0; rampLineIndex < ctrl.ramp.lineItem.rampLines.length; rampLineIndex ++) {
+
+				var rampLineStartDate = ctrl.ramp.lineItem.rampLines[rampLineIndex].lineItemSO[nsPrefix + 'StartDate__c'];
+				var rampLineEndDate = ctrl.ramp.lineItem.rampLines[rampLineIndex].lineItemSO[nsPrefix + 'EndDate__c'];
+
+				if(rampLineStartDate > rampLineEndDate) {
+					if(!angular.isDefined(errorMessagesMap[rampLineIndex])) {
+						errorMessagesMap[rampLineIndex] = [ctrl.labels.RampErrorEndBeforeStartDate];
+					} else {
+						errorMessagesMap[rampLineIndex].push(ctrl.labels.RampErrorEndBeforeStartDate);
+					}
 				}
-			});
 
-			Array.prototype.splice.apply(ctrl.errorMessages, [0, ctrl.errorMessages.length].concat(errorMessages));	
+				if(rampLineIndex != ctrl.ramp.lineItem.rampLines.length - 1) {
+					var nextRampLineStartDate = ctrl.ramp.lineItem.rampLines[rampLineIndex + 1].lineItemSO[nsPrefix + 'StartDate__c'];
+					if(rampLineEndDate > nextRampLineStartDate) {
+						if(!angular.isDefined(errorMessagesMap[rampLineIndex + 1])) {
+							errorMessagesMap[rampLineIndex + 1] = [ctrl.labels.RampErrorDateOverlap];
+						} else {
+							errorMessagesMap[rampLineIndex + 1].push(ctrl.labels.RampErrorDateOverlap);
+						}
+					}
+				}
+			}
+
+			ctrl.rampErrors = errorMessagesMap;
+
+			if(Object.keys(ctrl.rampErrors).length > 0) {
+				CartService.saveRamp();
+
+			} else {
+				return;
+
+			}	 
 
 		};
 
 		return ctrl;
 
 	};
-
-	PriceRampDialog.$inject = ['systemConstants'];
-
-	/**
-	 *  Price Ramp Dialog Directive
-	 */	
-	function PriceRampDialog(systemConstants) {
-
-		return {
-			restrict: 'E',
-			templateUrl: systemConstants.baseUrl + "/templates/directives/common/price-ramp.html",
-			controller: PriceRampDialogCtrl,
-			controllerAs: 'priceRamp',
-			bindToController: true
-		};
-	}
 
 }).call(this);

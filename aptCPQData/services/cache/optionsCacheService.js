@@ -7,50 +7,36 @@
 
 		var productToOptionGroupsMap;
 
-		cache.updateOptionGroupsForProduct = updateOptionGroupsForProduct;
+		cache.putOptionGroupsForProduct = putOptionGroupsForProduct;
 		cache.getOptionGroupsForProduct = getOptionGroupsForProduct;
 
 		init();
 
 		function init() {
-			resetOptions();
-		}
-
-	    /**
-		 * reset attributes
-		 */
-		function resetOptions() {
-			cache.isValid = false;
 			productToOptionGroupsMap = {};
 
 		}
 
-	    /**
-		 * update attribute groups for product
+		/**
+		 * Store option groups for product
 		 */
-		function updateOptionGroupsForProduct(productId, OptionGroups) {
-			if(!productId) {
+		function putOptionGroupsForProduct(productId, optionGroups) {
+			if (!productId || !optionGroups) {
 				return;
-			}
 
-			productToOptionGroupsMap[productId] = OptionGroups;
-			cache.isValid = true;
+			}
+			productToOptionGroupsMap[productId] = optionGroups;
 
 		}
 
 		/**
-		 * get attribute groups for product
-	     */
+		 * Retrieive option groups for product
+		 */
 		function getOptionGroupsForProduct(productId) {
-			if(!productId || !cache.isValid) {
-				return null;
-			}
-
-			if(productToOptionGroupsMap[productId]) {
+			if (!productId) {
 				return null;
 
 			}
-
 			return productToOptionGroupsMap[productId];
 
 		}

@@ -14,29 +14,18 @@
 	function OptionDataService($q, $log, systemConstants, RemoteService, ConfigurationDataService, OptionsCache) {
 		var service = this;
 		var nsPrefix = systemConstants.nsPrefix;
-		var primaryNumber = 10000;
+
+		/** Storing option requests */
 		var optionGroupPromises = {};
-		
+		var pendingProducts = [];
+		var outstandingGroupRequest = $q.when(true);
+
+		/** Attach service methods */		
 		service.getOptionGroups = getOptionGroups;
 		service.createOptionLineItemMap = createOptionLineItemMap;
-		service.getNextPrimaryLineNumber = getNextPrimaryLineNumber;
-		service.getNextItemSequence = getNextItemSequence;
 		service.addOptionLineItem = addOptionLineItem;		
 		
-		function getNextPrimaryLineNumber() {
-			return ++primaryNumber;
-		}
-		
-		function getNextItemSequence(lineItemDO) {
-			var itemSequence = 2;
-			if(angular.isArray(lineItemDO.chargeLines)) {
-				itemSequence +=  lineItemDO.chargeLines.length;
-			}
-			if(angular.isArray(lineItemDO.optionLines)) {
-				itemSequence +=  lineItemDO.optionLines.length;
-			}
-			return itemSequence;
-		}
+		/** -- Method declarations -- */
 
 		function addOptionLineItem(lineItemDO, optionLineItemDO) {
 			if(!angular.isArray(lineItemDO.optionLines)) {
@@ -52,7 +41,6 @@
 		 */
 		function getOptionGroups(productId) {
 			var cachedOptionGroups = OptionsCache.getOptionGroupsForProduct(productId);
-			
 			if(cachedOptionGroups) {
 				return $q.when(cachedOptionGroups);
 
@@ -61,29 +49,42 @@
 
 			}
 			
-			var includeParams = ["optionGroups"];
-			/* TODO: find if the product has attributes 
-			var products = CatalogCache.getProductInfo(productId);
-			if(!products) {
-			products = LineItemCache.getProductInfo(productId);
-
-			}*/
-				
+			
 			var product  = {
 				"Id": productId,
 			};
-			product[nsPrefix + 'HasAttributes__c'] = true;
 			product[nsPrefix + 'HasOptions__c'] = true;
-			var products = [product];
+			product[nsPrefix + 'HasAttributes__c'] = true;
+			pendingProducts.push(product);
 
-			var requestPromise = ConfigurationDataService.createCatalogRequestDO(null, null, null, includeParams, products).then(function(optionGroupRequest) {
-				return RemoteService.getProductDetails(optionGroupRequest);	
+			var newOutstandingRequest = outstandingGroupRequest.then(function (previousResult) {
+				var includeParams = ["optionGroups"];
+				var requestProducts = pendingProducts;
+				pendingProducts = [];
+				if (requestProducts.length === 0) {
+					//Don't need a request.
+					return previousResult;
+
+				}
+				var requestPromise = ConfigurationDataService.createCatalogRequestDO(null, null, null, includeParams, requestProducts).then(function (optionGroupRequest) {
+					return RemoteService.getProductDetails(optionGroupRequest);	
+				});
+				
+				return requestPromise.then(function (response) {
+					for (var productIndex = requestProducts.length - 1; productIndex >= 0; productIndex--) {
+						var nextId = requestProducts[productIndex].Id;
+						OptionsCache.putOptionGroupsForProduct(nextId, response.optionGroups[nextId]);
+						
+					}
+
+				});
+
 			});
-			
-			optionGroupPromises[productId] = requestPromise.then(function(response) {
-				OptionsCache.updateOptionGroupsForProduct(productId, response.optionGroups[productId]);
-				return response.optionGroups[productId];
 
+			outstandingGroupRequest = newOutstandingRequest;
+			optionGroupPromises[productId] = outstandingGroupRequest.then(function () {
+				return OptionsCache.getOptionGroupsForProduct(productId);
+				
 			});
 			return optionGroupPromises[productId];
 

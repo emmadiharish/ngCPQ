@@ -29,12 +29,12 @@
 	<div ng-if="filter.FieldName == (assetCtrl.nsPrefix + 'StartDate__c')">
     <label class="filter-text-label" for="{{assetCtrl.startDateField.ElementId}}">{{filter.Label}}</label>
     <dynamic-field class="filter-text-input" model="filter.dateValue" properties="assetCtrl.startDateField"></dynamic-field>
-	</div>
+  </div>
 </script>
 <!-- Picklists type Search-Filer -->
 <script type="text/ng-template" id="filterFieldTypePICKLIST">
-	<h4 class="block-refine-search__filter-label">{{filter.Label}}</h4>
-  <ul>
+	<label class="filter-picklist-label"><span ng-click="filterValue.viewCollapse = !filterValue.viewCollapse"><i class="fa" ng-class="{'fa-angle-down': !filterValue.viewCollapse, 'fa-angle-right': filterValue.viewCollapse}"></i>{{filter.Label}}</span></label>
+  <ul ng-hide="filterValue.viewCollapse">
     <li ng-repeat="filterValue in filter.pickListEntries">
       <div class="checkbox-override">
         <input type="checkbox" name="{{filterValue.label}}" id="{{filter.FieldName}}_{{$index + 1}}" ng-model="filterValue.selected"/>
@@ -46,18 +46,18 @@
 </script>
 <!-- Picklists that are within referece type fields -->
   <!-- Not all reference type filters may have an array of referencedObjects;
-    So check if defined -->
-<script type="text/ng-template" id="filterFieldTypeREFERENCE">
-  <div ng-if="filter.referenceObjects">
-    <h4 class="block-refine-search__filter-label">{{filter.Label}}</h4>
-    <ul>
-      <li ng-repeat="filterValue in filter.referenceObjects">
-        <div class="checkbox-override">
-          <input type="checkbox" name="{{filterValue.label}}" id="{{filter.FieldName}}_{{$index + 1}}" ng-model="filterValue.selected"/>
-          <label for="{{filter.FieldName}}_{{$index + 1}}"></label>
-        </div>
-        <label for="{{filter.FieldName}}_{{$index + 1}}">{{filterValue.Name}}</label>
-      </li>
-    </ul>
-  </div>
-</script>
+  So check if defined -->
+  <script type="text/ng-template" id="filterFieldTypeREFERENCE">
+    <div ng-if="filter.referenceObjects">
+      <label class="filter-picklist-label"><span ng-click="filterValue.viewCollapse = !filterValue.viewCollapse"><i class="fa" ng-class="{'fa-angle-down': !filterValue.viewCollapse, 'fa-angle-right': filterValue.viewCollapse}"></i>{{filter.Label}}</span></label>
+      <ul ng-hide="filterValue.viewCollapse">
+        <li ng-repeat="filterValue in filter.referenceObjects">
+          <div class="checkbox-override">
+            <input type="checkbox" name="{{filterValue.label}}" id="{{filter.FieldName}}_{{$index + 1}}" ng-model="filterValue.selected"/>
+            <label for="{{filter.FieldName}}_{{$index + 1}}"></label>
+          </div>
+          <label for="{{filter.FieldName}}_{{$index + 1}}">{{filterValue.Name}}</label>
+        </li>
+      </ul>
+    </div>
+  </script>

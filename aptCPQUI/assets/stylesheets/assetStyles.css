@@ -47,6 +47,11 @@
   border-top: 1px solid #E3E3E3;
 }
 
+.filter-picklist-label {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
 .action-button-spacing {
   padding: 0.5rem !important;
   margin-right: 0.5rem;
@@ -150,6 +155,11 @@ button.step-status-primary {
   /*margin-left: 1.0rem*/
 }
 
+.cancel-assets__name-title {
+  margin-left: 1.0rem;
+  font-weight: bold;
+}
+
 .asset-header__asset-title {
     -webkit-box-align: center;
     -webkit-align-items: center;
@@ -234,6 +244,8 @@ button.step-status-primary {
   color: #404040;
   font-family: ProximaNovaSoft-Regular;
   font-size: 1.50rem;
+  font-weight: bold;
+  padding-left: 1.0rem;  
 }
 
 .asset-state__contest-text {
@@ -301,7 +313,61 @@ th.main-asset-col:first-child label:before {
     padding-top: 0.7rem;
 }
 
+/* charge type col styles */
+.main-cart-col .asset-charge-line-col p {
+  font-size: 0.9rem
+}
 
+.main-cart-col:first-child>div .asset-charge-line-col {
+  margin-left: 2.2rem;
+  /*padding-left: 3rem*/
+}
+
+/*.main-cart-col:first-child>div ul li ul li.asset-charge-line-col {
+  padding-left: 3.8rem;
+  margin-left: 0;
+}*/
+
+.main-cart-col:first-child>div ul li ul li .asset-option-line-name {
+  padding-left: 1.5rem;
+}
+
+.asset-charge-line-col  .fieldtype-wrapper {
+  /*display: -webkit-box;
+  height: 2.5rem;
+  -webkit-box-align: center*/
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  padding: 0 .5rem;
+  width: 100%
+}
+
+.asset-charge-line-col {
+  border-top: 1px solid #E3E3E3;
+  background: #F0F2F4;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center
+}
+
+td:first-child .asset-charge-line-col {
+  padding-left: 2rem;
+  font-family: ProximaNovaSoft-Regular;
+  font-size: 1rem;
+  color: #86939F;
+  background: inherit;
+}
+
+td:nth-child(2) .asset-charge-line-col {
+  padding-left: 0
+}
 
 .asset-cancel__info-table {
     /*
@@ -519,7 +585,7 @@ td.asset-swap__primary-col:first-child {
 
 /*application.css override*/
 .option-line-name {
-    padding-left: 1rem;
+    padding-left: 0.25rem;
 }
 
 /* END: Assets classes */ 

@@ -1,0 +1,28 @@
+.dyanmic-field-disabled-input {
+	background-color:#f4f4f4 !important;
+	border: 1px solid #ddd !important;
+	color:#444;
+}
+
+.guidance-stop-light {
+   height:30px; 
+   width: 30px; 
+   border-radius: 50%;
+   margin: auto;
+}
+
+.guidance-green{
+	background-color: green;
+}
+
+.guidance-red{
+	background-color: red;
+}
+
+.guidance-yellow{
+	background-color: yellow;
+}
+
+.guidance-none{
+	background-color: none;
+}

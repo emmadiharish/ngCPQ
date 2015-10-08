@@ -6,6 +6,7 @@
 		var provider = this;
 		var actionsMap = {};
 		var redirectOnFail = '/';
+		var trackAllRemoteCalls = false;
 
 		provider.setRemoteActions = function (newActions) {
 			angular.extend(actionsMap, newActions);
@@ -14,6 +15,11 @@
 
 		provider.setRedirectLocation = function (newLocation) {
 			redirectOnFail = typeof newLocation == 'string' ? false : newLocation;
+			return provider;
+		};
+
+		provider.setTrackAllRemoteCalls = function(isEnabled){
+			trackAllRemoteCalls = isEnabled;
 			return provider;
 		};
 
@@ -37,11 +43,33 @@
 					isProp = RemoteActions.hasOwnProperty(actionKey);
 					isStr = typeof actionKey === 'string';
 					if (isProp && isStr) {
-						actionName = RemoteActions[actionKey];
-						service[actionKey] = createRemoteActionFunction(actionName);
+						actionConfig = getRemoteActionConfig(actionKey);
+						service[actionKey] = createRemoteActionFunction(actionConfig);
 
 					}
 				}
+			}
+
+			/*
+			* This method will check RemoteAction[key] contains action string or action config object
+			* according to that it will create actionConfig object and returns it 
+			*/
+			function getRemoteActionConfig(actionKey) {
+				var config = {}
+					if (angular.isDefined(RemoteActions[actionKey])) {
+						var actionConf = RemoteActions[actionKey];
+						if (angular.isString(actionConf)) {
+							config.actionName = actionConf;
+							config.skipLoader = false;
+
+						} else if (angular.isObject(actionConf)) {
+							config.actionName = (angular.isDefined(actionConf.actionName)) ? actionConf.actionName : null;
+							config.skipLoader = (angular.isDefined(actionConf.skipLoader)) ? actionConf.skipLoader : false;
+
+						}
+
+					}
+				return config;
 			}
 
 			/**
@@ -53,9 +81,9 @@
 			 * 	the Apex method. 
 			 * @return {promise} resolves with the result of the remote action
 			 */
-			function createRemoteActionFunction(actionName) {
+			function createRemoteActionFunction(actionConfig) {
 				var actionFunction = function() {
-					return invokeRemoteAction(actionName, arguments);
+					return invokeRemoteAction(actionConfig, arguments);
 
 				};
 				return actionFunction;
@@ -78,10 +106,16 @@
 			 * 		</code>
 			 * Here, thenable will be a promise that gets resolved with the result of the remote action 
 			 */
-			function invokeRemoteAction(actionName, actionParams) {
+			function invokeRemoteAction(actionConfig, actionParams) {
+				// $log.debug('invokeRemoteAction-->'+actionConfig.actionName, actionParams);
+				
 				//Constuct deferred object for return
-				var deferred, errorMessage, remoteActionWithParams, resolver, remotingParams;
+				var deferred, errorMessage, remoteActionWithParams, resolver, remotingParams, actionName;
 				deferred = $q.defer();
+				actionName = actionConfig.actionName;
+				
+				setRemoteServiceCount(actionConfig,true);
+				
 				if (!actionName || typeof actionName !== 'string') {
 					errorMessage = "Error - Could not invoke remote action: action name invalid!";
 					$log.error(errorMessage);
@@ -106,10 +140,13 @@
 				//Add the resolve function and remoting params to argument array
 				resolver = function resolveRemoteAction(result, event) {
 					if (event.status) {
+						$log.debug('Resolved "' + actionName + '"' + 
+												', Time taken: ' + result.timeTaken/1000 + ' sec.' +
+												', Query count: ' + result.queryCount);
 						deferred.resolve(result);
 						
 					} else {
-						errorMessage = 'Error - Could not invoke remote action: ' + actionName; 
+						errorMessage = 'Error - Could not resolve remote action: ' + actionName; 
 						$log.error(errorMessage, actionParams, event.message);
 						//Currently the only way to check whether request failed due to user logout
 						var isLoggedOut = event.message.toLowerCase().indexOf('logged') >= 0;
@@ -120,7 +157,8 @@
 						deferred.reject(event);
 
 					}
-					
+
+					setRemoteServiceCount(actionConfig,false);
 				};
 				remoteActionWithParams.push(resolver);
 
@@ -144,6 +182,24 @@
 				}
 				return deferred.promise;
 
+			}
+
+			/*
+			* This method sets pendingRemoteServiceCount of $q service (decorrated in queueWrapperService.js) 
+			* based on actionConfig.skip and LoggerLevel
+			*/
+			function setRemoteServiceCount(actionConfig, incrementFlag){
+				//$log.debug('setRemoteServiceCount-->', actionConfig, incrementFlag);
+				if (!actionConfig.skipLoader || trackAllRemoteCalls) {
+					if (incrementFlag) {
+						$q.incrementRemoteServiceCount();
+
+					} else {
+						$q.decrementRemoteServiceCount();
+
+					}
+
+				}
 			}
 
 		}

@@ -14,7 +14,7 @@
 				pageParams: ""
 		};
 		
-		ConfigurationDataServiceFactory.$inject = ['$q', '$log', '$http', 'aptBase.RemoteService'];
+		ConfigurationDataServiceFactory.$inject = ['$q', '$log', '$http', 'lodash', 'systemConstants', 'aptBase.RemoteService'];
 		provider.$get = ConfigurationDataServiceFactory;
 
 		provider.setRequestBase = function(newCartId, newConfigRequestId, newPriceListId, newPageParams) {
@@ -51,15 +51,16 @@
 
 		};
 		
-		function ConfigurationDataServiceFactory ($q, $log, $http, RemoteService) {
-			return new ConfigurationDataService($q, $log, $http, RemoteService, provider.getRequestBase($q, RemoteService));
+		function ConfigurationDataServiceFactory ($q, $log, $http, _, systemConstants, RemoteService) {
+			return new ConfigurationDataService($q, $log, $http, _, systemConstants, RemoteService, provider.getRequestBase($q, RemoteService));
 
 		}
 
-		function ConfigurationDataService($q, $log, $http, RemoteService, requestBase1) {
+		function ConfigurationDataService($q, $log, $http, _, systemConstants, RemoteService, requestBase1) {
 			var service = this;
 			var configurationData;
 			var configurationRequestPromise;
+			var customSettingsPromise = null;
 
 			/** Service constants -- may need to be retrived from custom setting */
 			service.defaultSearchFields = ["Name", "ProductCode", "Family"];
@@ -67,6 +68,8 @@
 				ATTRIBUTE_FIELDS: 'attributeFields',
 				ATTRIBUTE_GROUPS: 'attributeGroups',
 				ATTRIBUTE_VALUES: 'attributeValues',
+				ATTRIBUTE_RULES: 'attributeRules',
+				ATTRIBUTE_MATRICES: 'attributeMatrices',
 				CART: 'cart',
 				CART_LINES: 'cartLines',
 				CATEGORIES: 'categories',
@@ -75,6 +78,7 @@
 				DEFAULT_OPTIONS: 'defaultOptionProducts',
 				DISPLAY_ACTIONS: 'displayActions',
 				DISPLAY_COLUMNS: 'displayColumns',
+				FIELD_EXPRESSIONS: 'fieldExpressions',
 				GRAND_TOTAL: 'grandTotal',
 				MINI_CART: 'minicart',
 				OPTION_GROUPS: 'optionGroups',
@@ -85,7 +89,8 @@
 				PRODUCT_INFORMATION: 'productInformation',
 				RULE_ACTIONS: 'ruleActions',
 				TOTAL_ITEMS: 'totalItems',
-				USAGE_PRICE_TIERS: 'usagePriceTiers'
+				USAGE_PRICE_TIERS: 'usagePriceTiers',
+				CART_LOCATIONS: 'cartLocations'
 			};
 
 			/** Attach public methods */
@@ -99,7 +104,6 @@
 			service.getSObjectSummary = getSObjectSummary;
 			service.requestBasePromise = requestBase1;
 			service.CartPageUrl = null;
-
 
 			/* -- Method declarations */
 
@@ -130,7 +134,8 @@
 				configurationRequestPromise = dataPromise.then(function (result) {
 					//Extend will add references to any properties in the result
 					//Returns a reference to first param
-
+					// $log.debug('getConfigurationData-->timeTaken: ', result.timeTaken/1000 + ' seconds, queryCount: ', result.queryCount);
+					
 					if ( result.customSettings.systemProperties.CartPageUrl ) {
 						var queryStr = '?id=' + requestBase.cartId + '&configRequestId=' + requestBase.configRequestId;
 						service.CartPageUrl= result.customSettings.systemProperties.CartPageUrl + queryStr;
@@ -161,7 +166,12 @@
 			}
 
 			function getCustomSettings() {
-				return getConfigurationData().then(function (result) {
+				if (customSettingsPromise == null) {
+					customSettingsPromise = getConfigurationData();
+				
+				}
+				
+				return customSettingsPromise.then(function (result) {
 					return result.customSettings;
 
 				});
@@ -331,6 +341,89 @@
 				return cartRequest;
 
 			}
+			
+			/**
+			 * Returns custom cart page url.
+			 * Returns null if it is not custom 
+			 */
+			service.getCustomCartPageUrl = function() {
+				return service.requestBasePromise.then(function(requestBase){
+					var pageUrl = systemConstants.customSettings.systemProperties.CartPage;
+					if (pageUrl != null && angular.isDefined(pageUrl) && _.endsWith(pageUrl.toLowerCase(), 'cart') === false) { //cart page should be "cart" in NG
+						return service.formatPageUrl(pageUrl);
+						
+					} else {
+						return null;
+						
+					}
+				});
+
+			};
+
+			/**
+			 * Returns custom cart page url.
+			 * Returns null if it is not custom 
+			 */
+			service.getCustomCatalogPageUrl = function() {
+				return service.requestBasePromise.then(function(requestBase){
+					var pageUrl = systemConstants.customSettings.systemProperties.CatalogPage;
+					if (pageUrl != null && angular.isDefined(pageUrl) && _.endsWith(pageUrl.toLowerCase(), 'cart') === false) { //cart page should be "cart" in NG
+						return service.formatPageUrl(pageUrl);
+						
+					} else {
+						return null;
+						
+					}
+				});
+
+			};
+			
+			/**
+			 * Returns custom attribute page url.
+			 * Returns null if it is not custom 
+			 */
+			service.getCustomAttributePageUrl = function() {
+				return service.requestBasePromise.then(function(requestBase){
+					var pageUrl = systemConstants.customSettings.systemProperties.AttributePage;
+					if (pageUrl != null && angular.isDefined(pageUrl) && _.endsWith(pageUrl.toLowerCase(), 'cart') === false) { //attribute page should be "cart" in NG
+						return pageUrl + '?cartId=' + requestBase.cartId 
+										+ '&configRequestId=' + requestBase.configRequestId 
+										+ '&flow='+systemConstants.customSettings.systemProperties.flow 
+										+ '&callerPage=cart';
+						
+					} else {
+						return null;
+						
+					}
+				});
+									
+			};
+			
+			/**
+			 * Returns custom asset page url.
+			 * Returns null if it is not custom 
+			 */
+			service.getCustomAssetPageUrl = function() {
+				return service.requestBasePromise.then(function(requestBase){
+					var pageUrl = systemConstants.customSettings.systemProperties.AssetsPage;
+					if (pageUrl != null && angular.isDefined(pageUrl) && _.endsWith(pageUrl.toLowerCase(), 'cart') === false) { //assets page should be "cart" n NG
+						return service.formatPageUrl(pageUrl);
+						
+					} else {
+						return null;
+						
+					}
+				});
+
+			};
+			
+			service.formatPageUrl = function(pageUrl) {
+				return pageUrl + '?id=' + requestBase.cartId 
+								+ '&configRequestId=' + requestBase.configRequestId 
+								+ '&flow='+systemConstants.customSettings.systemProperties.flow 
+								+ '&callerPage=cart';
+			};
+			
 
 		}
 

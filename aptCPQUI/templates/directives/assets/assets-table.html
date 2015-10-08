@@ -1,8 +1,9 @@
 <div class="main-cart-wrapper main-cart-wrapper--overflow">
+  <asset-summary-dialog></asset-summary-dialog>
 	<asset-header></asset-header>
 	<div class="main-cart-container--positioning">
 		<div class="main-cart-container">
-			<div class="loading" ng-show="mainAssetController.loading">Loading&#8230;</div>
+			<div class="loading" ng-show="mainAssetController.loading">{{mainAssetController.labels.Loading}}</div>
       <div ng-if="!(mainAssetController.loading) &amp;&amp; (mainAssetController.assetLineItems.length == 0)"><h2>No Items Available To View</h2></div>
 			<table ng-if="mainAssetController.assetLineItems.length > 0">
 				<!-- column heading -->
@@ -16,7 +17,7 @@
 				<tbody ng-sortable="{ handle: '.line-item-row--draggable', group: 'lineItem'}">
 					<!-- top level asset line items -->
 					<tr item="lineItem" 
-              dir-paginate="lineItem in mainAssetController.assetLineItems | itemsPerPage: 25" 
+              dir-paginate="lineItem in mainAssetController.assetLineItems | itemsPerPage: mainAssetController.linesPerPage" 
               class="line-item-row">
 						<td ng-repeat="column in mainAssetController.tableColumns" 
                 ng-class="{'is--editable' : column.IsEditable}" 
@@ -34,109 +35,97 @@
                 <dynamic-field model="lineItem.assetLineItemSO['@@PendingStatus']" properties="column"></dynamic-field>
               </div>
               <!--Top level Charge lines-->
+              <ul ng-if="mainAssetController.showChargeLines &amp;&amp; lineItem.chargeLines.length &amp;&amp; column.FieldType !== 'DETAIL'" class="submenu optionlines">
+                <li ng-repeat="chargeLine in lineItem.chargeLines" class="option-line-col">
+                  <div class="fieldtype-wrapper" ng-include="'chargeLineInclude'"></div>
+                </li>
+              </ul>
               <!--Top level option lines-->
-              <ul ng-if="lineItem.optionLines.length &amp;&amp; column.FieldType !== 'DETAIL'" 
-                  class=" submenu submenu--optionlines">
-                <li ng-repeat="optionLine in lineItem.optionLines" class="option-line-col">
-                  <div class="fieldtype-wrapper">
-                    <dynamic-field ng-if="column.FieldName.indexOf('LocationId') >= 0" model="optionLine.assetLineItemSO[column.FieldName].Name" properties="column"></dynamic-field>
-                     <dynamic-field ng-if="column.FieldName.indexOf('LocationId') < 0" model="optionLine.assetLineItemSO[column.FieldName]" properties="column"></dynamic-field>
-                    <!-- <dynamic-field model="optionLine.lineItemSO[column.FieldName]" properties="column"></dynamic-field> -->
-                  </div>
-                  <!--Secondary Level option and charge lines-->
-                  <ul ng-if="optionLine.chargeLines.length" class="charge-lines">
-                    <li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
-                      <div class="fieldtype-wrapper">
-                        <dynamic-field ng-if="column.FieldName.indexOf('LocationId') >= 0" model="chargeLine.lineItemSO[column.FieldName].Name"
-                          properties="column">
-                        <dynamic-field ng-if="column.FieldName.indexOf('LocationId') < 0" model="chargeLine.lineItemSO[column.FieldName]"
-                          properties="column">
-                        </dynamic-field>
-                        <!--div(ng-include="'fieldType'+ column.FieldType")-->
-                      </div>
-                    </li>
-                  </ul>
-                  <ul ng-if="optionLine.optionLines" class="submenu submenu--optionlines  option-{{optionLine.lineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}">
-                    <li ng-repeat="optionLine in optionLine.optionLines" ng-include="'subOptionLineCol'" class="option-line-col"></li>
-                  </ul>
+              <ul ng-if="mainAssetController.showOptionLines &amp;&amp; lineItem.optionLines.length &amp;&amp; column.FieldType !== 'DETAIL'" class="submenu submenu--optionlines">
+                <li ng-repeat="optionLine in lineItem.optionLines" ng-include="'optionLineInclude'" class="option-line-col">
                 </li>
               </ul>
             </td>
 					</tr>
 				</tbody>
 			</table>
-			<!-- <span>Main Asset Line Items data would go here</span> -->
 		</div>
 	</div>
 </div>
 
-<!-- subOptions -->
-<script type="text/ng-template" id="subOptionAssetLineDetail">
-  <div class="line-item-name">
-    <!--
-    <div class="checkbox-override">
-      <input type="checkbox" id="{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}"/>
-      <label for="{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}"></label>
-    </div>
-    -->
-    <i toggle-class="is--open" parent="option-line-col" ng-if="optionLine.optionLines.length" toggle-all-class="option-{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}" toggle-all-class-with="is--visible" class="line-item--expandable"></i>
-    <h3>{{optionLine.lineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Name}}</h3>
-  </div>
-  <ul ng-if="optionLine.optionLines.length" class="submenu submenu--optionlines">
-    <li ng-repeat="optionLine in optionLine.optionLines" ng-include="'subOptionAssetLineDetail'" class="option-line-col">
-      <p>{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Name}}</p>
-    </li>
-  </ul>
+<!-- charge line includes -->
+<script type="text/ng-template" id="chargeLineInclude">
+  <dynamic-field ng-if="column.FieldName.indexOf('LocationId') >= 0" model="chargeLine.assetLineItemSO[column.FieldName].Name" properties="column"></dynamic-field>
+  <dynamic-field ng-if="column.FieldName == (mainAssetController.nsPrefix + 'AssetStatus__c') &amp;&amp; column.FieldName.indexOf('LocationId') < 0" model="chargeLine.assetLineItemSO['@@PendingStatus']" properties="column"></dynamic-field>
+  <dynamic-field ng-if="column.FieldName != (mainAssetController.nsPrefix + 'AssetStatus__c') &amp;&amp; column.FieldName.indexOf('LocationId') < 0" model="chargeLine.assetLineItemSO[column.FieldName]" properties="column"></dynamic-field>
 </script>
-<!--All beneath top level. Not in left DETAIL column-->
-<script type="text/ng-template" id="subOptionAssetLineCol">
+
+<!-- option line includes (recursive) -->
+<!-- TODO: The digest cycle will allow only 10 nested levels; will throw an error if more than that -->
+<script type="text/ng-template" id="optionLineInclude">
   <div class="fieldtype-wrapper">
-    <div ng-include="'fieldType'+ column.FieldType"></div>
+    <dynamic-field ng-if="column.FieldName.indexOf('LocationId') >= 0" model="optionLine.assetLineItemSO[column.FieldName].Name" properties="column"></dynamic-field>
+    <dynamic-field ng-if="column.FieldName == (mainAssetController.nsPrefix + 'AssetStatus__c') &amp;&amp; column.FieldName.indexOf('LocationId') < 0" model="optionLine.assetLineItemSO['@@PendingStatus']" properties="column"></dynamic-field>
+    <dynamic-field ng-if="column.FieldName != (mainAssetController.nsPrefix + 'AssetStatus__c') &amp;&amp; column.FieldName.indexOf('LocationId') < 0" model="optionLine.assetLineItemSO[column.FieldName]" properties="column"></dynamic-field>
   </div>
-  <ul ng-if="optionLine.chargeLines.length" class="submenu submenu--chargelines chargelines-{{optionLine.lineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}">
-    <li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
-      <div class="fieldtype-wrapper">
-        <div ng-include="'fieldType'+ column.FieldType"></div>
-      </div>
+  <ul ng-if="optionLine.chargeLines.length" class="charge-lines">
+    <li ng-repeat="chargeLine in optionLine.chargeLines" class="option-line-col">
+      <div class="fieldtype-wrapper" ng-include="'chargeLineInclude'"></div>
     </li>
   </ul>
-  <ul ng-if="optionLine.optionLines" class="submenu submenu--optionlines option-{{optionLine.lineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}">
-    <li ng-repeat="optionLine in optionLine.optionLines" ng-include="'subOptionAssetLineCol'" class="option-line-col"></li>
+  <ul ng-if="optionLine.optionLines" class="submenu submenu--optionlines  option-{{optionLine.lineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}">
+    <li ng-repeat="optionLine in optionLine.optionLines" ng-include="'optionLineInclude'" class="option-line-col"></li>
   </ul>
 </script>
+
+<!-- include this to show charge line name in the 'DETAILS' column -->
+<script type="text/ng-template" id="chargeLineNameInclude">
+  <div class="option-line-name">
+    <H3><i class="fa fa-money"></i>{{chargeLine.assetLineItemSO[column.FieldName].Name}}</H3>
+  </div>
+</script>
+
+<!-- recursively include this block to show Option names in the 'DETAILS' column -->
+<script type="text/ng-template" id="optionLineNameInclude">
+  <div class="option-line-name">
+    <h3><i class="fa fa-check-square-o"></i>{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Name}}</h3>
+  </div>
+  <!-- option charge lines -->
+  <ul ng-if="mainAssetController.showChargeLines &amp;&amp; optionLine.chargeLines.length">
+     <li ng-repeat="chargeLine in optionLine.chargeLines" ng-include="'chargeLineNameInclude'" class="option-line-col"></li>
+  </ul>
+  <!-- sub options -->
+  <ul ng-if="optionLine.optionLines.length">
+    <li ng-repeat="optionLine in optionLine.optionLines" ng-include="'optionLineNameInclude'" class="option-line-col"></li>
+  </ul>
+</script>
+
 <!--All detail beneath top level-->
 <script type="text/ng-template" id="fieldTypeDETAIL">
   <div class="line-item-name">
+    <!-- if not pending and not cancelled -->
     <div ng-if="(lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Pending') < 0) &amp;&amp; (lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Cancelled') < 0)" class="checkbox-override">
       <input type="checkbox" id="{{lineItem.assetLineItemSO.Id}}" ng-model="lineItem.assetLineItemSO['@@uiSelection']" ng-change="mainAssetController.handleSelectionChange(lineItem)"/>
       <label for="{{lineItem.assetLineItemSO.Id}}"></label>
     </div>
+    <!-- if Cancelled -->
     <div ng-if="(lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Pending') < 0) &amp;&amp; (lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Cancelled') >= 0)" class="checkbox-override">
       <input type="checkbox" id="{{lineItem.assetLineItemSO.Id}}" ng-model="lineItem.assetLineItemSO['@@uiSelection']" ng-change="mainAssetController.handleSelectionChange(lineItem)" ng-disabled="true" />
       <label for="{{lineItem.assetLineItemSO.Id}}"></label>
     </div>
+    <!-- if Pending -->
     <div ng-if="(lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Pending') >= 0) &amp;&amp; (lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Cancelled') < 0)" class="checkbox-override">
       <h3><span class="ss-icon ss-cart"></span></h3>
     </div>
-    <i toggle-class="is--open" parent="line-item-row" ng-if="lineItem.optionLines.length" class="line-item--expandable"></i>
+    <i toggle-class="is--open" parent="line-item-row" ng-if="lineItem.optionLines.length || lineItem.chargeLines.length" class="line-item--expandable"></i>
     <h3><span class="line-item--name"><a ng-class="{'asset-item-disabled': (lineItem.assetLineItemSO['@@PendingStatus'].indexOf('Cancelled') >= 0)}" ng-click="mainAssetController.openSummaryDialog(lineItem)">{{lineItem.assetLineItemSO[column.FieldName].Name}}</a></span></h3>
   </div>
-  <!-- Include all options that belong to this asset (this might be recursive) -->
-  <ul ng-if="lineItem.optionLines.length">
-  	<li ng-repeat="optionLine in lineItem.optionLines" class="option-line-col">
-  		<div class="option-line-name">
-  			<!--
-        <div class="checkbox-override">
-  				<input type="checkbox" id="{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}"/>
-  				<label for="{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}"></label>
-  			</div>
-        -->
-  			<i toggle-class="is--open" parent="option-line-col" toggle-all-class="option-{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}" toggle-all-class-with="is--visible" ng-if="optionLine.optionLines.length" class="line-item--expandable"></i>
-  			<h3>{{optionLine.assetLineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Name}}</h3>
-  		</div>
-  		<ul ng-if="optionLine.optionLines.length" class="submenu submenu--optionlines option-{{optionLine.lineItemSO[mainAssetController.nsPrefix + 'OptionId__r'].Id}}">
-        <li ng-repeat="optionLine in optionLine.optionLines" ng-include="'subOptionAssetLineDetail'" class="option-line-col"></li>
-      </ul>
-  	</li>
+  <!-- Output all charge top level lines -->
+  <ul ng-if="mainAssetController.showChargeLines &amp;&amp; lineItem.chargeLines.length">
+    <li ng-repeat="chargeLine in lineItem.chargeLines" ng-include="'chargeLineNameInclude'" class="option-line-col"></li> 
   </ul>
+  <!-- Recursively include all options that belong to this asset -->
+  <ul ng-if="mainAssetController.showOptionLines &amp;&amp; lineItem.optionLines.length">
+    <li ng-repeat="optionLine in lineItem.optionLines" ng-include="'optionLineNameInclude'" class="option-line-col"></li> 
+  </ul>  
 </script>

@@ -24,7 +24,15 @@
 		var ruleTypes = ['error', 'warning', 'info'];
 		var processedIds = {};
 		
-		service.contextLineItem;
+		// Constant action types
+		service.ACTIONTYPE_INCLUDE = 'Inclusion';
+		service.ACTIONTYPE_EXCLUDE = 'Exclusion';
+		service.ACTIONTYPE_RECOMMEND = 'Recommendation';
+		service.ACTIONTYPE_VALIDATE = 'Validation';
+		service.ACTIONTYPE_REPLACE = 'Replacement';
+
+		// Context line item gets attached by ConfigureService
+		// service.contextLineItem;
 		
 		var linesWithMessage = {};
 		
@@ -56,9 +64,11 @@
 					contextBundleNumber = -1;//should never happen
 					
  				}
+
  			}
  			return contextBundleNumber;
- 		}
+
+ 		};
 
 		/**
 		 * @return {Object} message structure
@@ -70,7 +80,8 @@
 			}
 			return messages[contextBundleNumber];
 
-		}
+		};
+
 		/**
 		 * returns all prompts with target bundle number as zero. 
 		 * used in options page to display primary prompt in addition to its own prompts
@@ -82,7 +93,7 @@
 			}
 			return messages[contextBundleNumber].prompt;
 
-		}
+		};
 		
 		/**
 		 * returns next active prompt
@@ -91,8 +102,9 @@
 			//display all primary prompts in all pages
 			var primaryPrompts = getPrimaryPrompts();
 			var activePrompt;
-			for (var i = 0; i < primaryPrompts.length; i++) {
-				var prompt = primaryPrompts[i];
+			var i, prompt;
+			for (i = 0; i < primaryPrompts.length; i++) {
+				prompt = primaryPrompts[i];
 				if (processedIds[prompt.Id] !== true && prompt[nsPrefix + 'Ignored__c'] !== true) {
 					activePrompt = primaryPrompts[i];
 					break;
@@ -100,8 +112,8 @@
 			}
 			if (angular.isUndefined(activePrompt)) {
 				var optionPrompts = service.getMessages().prompt;
-				for (var i = 0; i < optionPrompts.length; i++) {
-					var prompt = optionPrompts[i];
+				for (i = 0; i < optionPrompts.length; i++) {
+					prompt = optionPrompts[i];
 					if (processedIds[prompt.Id] !== true && prompt[nsPrefix + 'Ignored__c'] !== true) {
 						activePrompt = optionPrompts[i];
 						break;
@@ -111,7 +123,7 @@
 			}
 			return activePrompt;
 			
-		}
+		};
 		
 		/**
 		 * @return [Object] list of warnings 
@@ -129,7 +141,7 @@
 			});
 			return errorLines;
 			
-		}
+		};
 
 		/**
 		 * Insert new rule actions into stored actions.
@@ -173,10 +185,10 @@
 
 			});
 
-			$log.info('messages', messages);
+			$log.debug('Updated constraint rule messages: ', messages);
 			return messages;
 
-		}
+		};
 		
 		/**
 		 * flag as processed. TODO: handle min-required
@@ -184,7 +196,7 @@
 		service.markAsProcessed = function(activePrompt) {
 			processedIds[activePrompt.Id] = true;
 			
-		}	
+		};
 
 		/**
 		 * @param [RuleAction] activePrompt

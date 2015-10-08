@@ -1,5 +1,5 @@
 <div class="main-cart-wrapper main-cart-wrapper--overflow">
-	<div class="loading" ng-show="cancelAssetCtrl.loading">Loading&#8230;</div>
+	<div class="loading" ng-show="cancelAssetCtrl.loading">{{cancelAssetCtrl.labels.Loading}}</div>
 	<div class="cart-header">
 		<div class="cart-header__cart-title">
 			<h1>{{cancelAssetCtrl.labels.ConfirmTermination}}</h1>
@@ -7,7 +7,6 @@
 	</div>
 	<div class="main-asset-container--positioning">
 		<div class="main-asset-container-header">
-			<!-- <div class="loading-local" ng-show="true">Loading&#8230;</div> -->
 			<label class="asset-actions-text-label" for="{{cancelAssetCtrl.dateField.ElementId}}">{{cancelAssetCtrl.labels.TerminationDate}}</label>
 			<dynamic-field class="asset-action__effective-date" model="cancelAssetCtrl.globalEndDate" properties="cancelAssetCtrl.dateField"></dynamic-field>
 			 <!-- <input ng-style="{ 'border': cancelAssetCtrl.dateStyle }" class="asset-actions-text-input" pikaday="cancelAssetCtrl.globalEndDate" id="{{cancelAssetCtrl.dateField.ElementId}}"/> -->
@@ -23,9 +22,7 @@
 			</div>
 			<div ng-if="cancelAssetCtrl.currLineSelectionList.length > 0">
 				<div class="asset-cancel__table-title" ng-repeat="lineItem in cancelAssetCtrl.currLineSelectionList">
-					<span ng-class="{'ss-dropdown' : cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id], 'ss-directright' : !cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id]}" class="cancel-asset__toggle" 
-					ng-click="cancelAssetCtrl.toggleTableShow(lineItem.assetLineItemSO.Id)"></span>
-					<span class="asset-state__header-text">{{lineItem.assetLineItemSO[cancelAssetCtrl.nsPrefix + 'ProductId__r'].Name}}</span>
+					<span class="asset-state__header-text" ng-click="cancelAssetCtrl.toggleTableShow(lineItem.assetLineItemSO.Id)"><i class="fa" ng-class="{'fa-angle-down' : cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id], 'fa-angle-right' : !cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id]}"></i>&nbsp;{{lineItem.assetLineItemSO[cancelAssetCtrl.nsPrefix + 'ProductId__r'].Name}}</span>
 					<div class="cancel-asset__table-container" ng-show="cancelAssetCtrl.showTable[lineItem.assetLineItemSO.Id]">
 						<table class="asset-cancel__info-table asset-cancel__table-nodes">
 							<thead class="asset-section-table-header">
@@ -101,12 +98,12 @@
 			</div>
 		</div>
 		<!-- confirm and cancel buttons -->
-<!-- 		<div class="main-asset-container-footer">
+		<div class="main-asset-container-footer">
 			<div style="margin-top: 1.0rem">
 				<input class="asset-align__check-box" type="checkbox" id="provisioningOrderCheck" ng-model="cancelAssetCtrl.createProvisioningOrder"/>
 				<label class="asset-align__check-box" for="provisioningOrderCheck">Create Provisioning Order</label>
 			</div>
-		</div> -->
+		</div>
 		<div class="main-asset-container-footer">
 			<button ng-disabled="!cancelAssetCtrl.calcDone" class="secondary asset-action-button-spacing" ng-click="cancelAssetCtrl.handleConfirmOperation()">
 				<span>{{cancelAssetCtrl.labels.Confirm}}</span>

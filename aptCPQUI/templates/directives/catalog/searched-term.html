@@ -1,0 +1,6 @@
+
+<div class="searched-term block">
+  <input type="search" value="{{searchBox.searchTerm}}" placeholder="{{searchBox.labels.FindProducts}}" ng-model="searchBox.searchTerm"/>
+  <button ng-click="searchBox.clearSearchedTerm()" ng-show="searchBox.hasSearchedTerm"><i class="ss-delete"></i></button>
+  <button ng-click="searchBox.findProducts(searchBox.searchTerm)" ng-hide="searchBox.hasSearchedTerm"><i class="ss-search"></i></button>
+</div>

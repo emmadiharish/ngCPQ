@@ -1,0 +1,6 @@
+<h3>{{attrGroup.Name}}</h3>
+<div ng-class="{'two-column': ctrl.isTwoColumn()}" ng-repeat="attr in ctrl.attrsForGroup()" class="form-element-container">		
+	<label ng-show="ctrl.isVisible(attr)">{{ctrl.attributeLabel(attr)}}<i ng-show="ctrl.isRequired(attr)" class="fa fa-asterisk" style="color: #BA3838;line-height: 1.25rem;"></i></label>
+	<p ng-show="ctrl.isVisible(attr)" ng-if="ctrl.attributeHelp(attr)">{{ctrl.attributeHelp(attr)}}</p>
+	<dynamic-field ng-show="ctrl.isVisible(attr)" model="ctrl.lineItem.attrGetterSetter(ctrl.attributeName(attr))" properties="ctrl.attributeDisplayInfo(attr)"/>
+</div>

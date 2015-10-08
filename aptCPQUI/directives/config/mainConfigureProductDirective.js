@@ -7,33 +7,56 @@
 	
 	angular.module('aptCPQUI').directive('mainConfigureProduct', MainConfigureProduct);
 
-	MainConfigureProductController.$inject = [
-	                                          '$stateParams',
-	                                          'ConfigureService',
-	                                          'aptBase.i18nService',
-	                                          'CatalogDataService'
-	                                          ];
-
-	function MainConfigureProductController($stateParams, ConfigureService, i18nService, CatalogDataService) {
-		var mainConfigCtrl = this;
-		mainConfigCtrl.lineItem = ConfigureService.lineItem;
-		mainConfigCtrl.view = $stateParams.step ? $stateParams.step : mainConfigCtrl.lineItem.hasAttrs() ? 'attributes' : 'options';
-		mainConfigCtrl.labels = i18nService.CustomLabel; 
-
-		mainConfigCtrl.openProductSummary = function(productId) {
-			return CatalogDataService.setProductSummaryId(productId);
-		};
-
-	}
-
 	MainConfigureProduct.$inject = ['systemConstants'];
 
 	function MainConfigureProduct(systemConstants) {
 		return {
 			controller: MainConfigureProductController,
-			controllerAs: 'config',
+			controllerAs: 'mainConfigCtrl',
 			bindToController: true
 		};
+	}
+
+	MainConfigureProductController.$inject = [
+	                                          '$stateParams',
+	                                          'systemConstants',
+	                                          'ConfigureService',
+	                                          'aptBase.i18nService',
+	                                          'CatalogDataService'
+	                                          ];
+
+	function MainConfigureProductController($stateParams, systemConstants, ConfigureService, i18nService, CatalogDataService) {
+		var ctrl = this;
+		
+		ctrl.lineItem = ConfigureService.lineItem;
+		ctrl.view = $stateParams.step ? $stateParams.step : ConfigureService.lineItem.hasAttrs() ? 'attributes' : 'options';
+		ctrl.labels = i18nService.CustomLabel; 
+		
+		ctrl.showBundleHeader = function() {
+			return systemConstants.customSettings.optionsPageSettings.ShowBundleDetail == true;
+		};
+
+		ctrl.viewOptions = function() {
+			return systemConstants.customSettings.optionsPageSettings.TabViewInConfigureBundle == true
+			 			|| $stateParams.step == 'options'
+			 			|| ctrl.lineItem.hasAttrs() == false;
+		};
+		
+		ctrl.viewAttributes = function() {
+			return !ctrl.viewOptions();
+		};
+
+		ctrl.openProductSummary = function(productId) {
+			return CatalogDataService.setProductSummaryId(productId);
+		};
+		
+		ctrl.showRootNavigation = function() {
+			return (!!ConfigureService.lineItem.rootItem 
+					&& (ConfigureService.lineItem.rootItem.txnPrimaryLineNumber != ConfigureService.lineItem.txnPrimaryLineNumber));
+		};
+
+		return ctrl;
+
 	}
 
 })();

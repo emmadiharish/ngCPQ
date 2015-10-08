@@ -8,7 +8,8 @@
 				<div class="select-override">
 					<select ng-change="picklistCtrl.selectOption(picklistCtrl.selected)" 
 									ng-model="picklistCtrl.selected"
-									ng-options="option.name() for option in picklistCtrl.group.options"></select>
+									ng-options="option.name() for option in picklistCtrl.group.options"
+									ng-disabled="!picklistCtrl.group.isModifiable()"></select>
 				</div>
 			</div>
 			<div class="form-element-container">
@@ -18,13 +19,11 @@
 				<span>{{picklistCtrl.extraColumn(2)}}</span>
 			</div>
 			<div class="form-element-container">
-				<dynamic-field model="picklistCtrl.selected.optionLine.data.chargeLines[0].lineItemSO[picklistCtrl.quantityField]"
-											 properties="{'FieldType': 'QUANTITY', 'IsEditable': picklistCtrl.selected.isEditable()}"
+				<dynamic-field model="picklistCtrl.selected.lineItem.quantityGetterSetter()" 
+											 field-type="QUANTITY"
+											 is-editable="{{picklistCtrl.selected.isEditable()}}"
 											 class="product-option__quantity">
 				</dynamic-field>
-			</div>
-			<div class="product-option__price">
-				<span>{{picklistCtrl.price() | aptNumberToCurrency}}</span>
 			</div>
 			<div class="form-element-container product-option__price"
 					 ng-class="{'is--open': picklistCtrl.showAllPrices}">
