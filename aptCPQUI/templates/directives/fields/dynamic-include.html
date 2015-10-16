@@ -1,12 +1,12 @@
-<div ng-if="dynamicField.IsEditable" 
+<div ng-if="!dynamicField.getIsReadOnlyFormula() && !dynamicField.getIsReadOnlyPlainText()" 
 		 ng-include="dynamicField.templateUrl">
 </div>
-<div ng-if="!dynamicField.IsEditable && (!dynamicField.IsCalculated || !dynamicField.getIsStringType())"
+<div ng-if="dynamicField.getIsReadOnlyPlainText()"
 	 	 class="{{dynamicField.properties.StyleClass}}" 
 	 	 style="{{dynamicField.properties.Style}}">
 	{{dynamicField.getSetModel()}}
 </div>
-<div ng-if="!dynamicField.IsEditable && dynamicField.IsCalculated && dynamicField.getIsStringType()"
+<div ng-if="dynamicField.getIsReadOnlyFormula()"
 	 	 class="{{dynamicField.properties.StyleClass}}" 
 	 	 style="{{dynamicField.properties.Style}}">
 	<div ng-bind-html="trustAsHtml(dynamicField.getSetModel())"/>	

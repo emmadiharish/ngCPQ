@@ -3,11 +3,11 @@
 	<input type="{{dynamicField.DisplayType}}" 
 				 ng-model="dynamicField.getSetModel"
 				 ng-model-options="dynamicField.modelOptions"
-				 class="{{dynamicField.properties.StyleClass}}" 
+				 class="field--dynamic {{dynamicField.properties.StyleClass}}" 
 				 style="{{dynamicField.properties.Style}}"
 				 id="{{dynamicField.properties.ElementId}}"
 				 ng-true-value="{{dynamicField.TrueValue}}"
 				 ng-false-value="{{dynamicField.FalseValue}}"
-				 ng-disabled="dynamicField.IsDisabled"
+				 ng-disabled="dynamicField.IsDisabled || !dynamicField.IsEditable"
 				 ng-class="{'dyanmic-field-disabled-input': dynamicField.IsDisabled}"/>				 
 </p>

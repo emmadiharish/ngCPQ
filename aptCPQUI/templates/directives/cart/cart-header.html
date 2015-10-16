@@ -26,6 +26,27 @@
               class="tertiary">
         <span>{{cartHeader.labels.RemoveFromCart}}</span>
       </button>
+
+      <div class="move-items">
+          <button class="tertiary">
+              Move to...
+              <i toggle-class="is--open" 
+                 parent="move-items"
+                 class="line-item--expandable"></i>
+          </button>
+          <ul class="page-menu">
+            <li ng-repeat="n in cartHeader.getTimes(4) track by $index" ng-if="$index<cartHeader.totalPage">
+              <a href ng-click="cartHeader.moveCheckedItems($index)"> 
+                Page {{$index+1}}
+              </a>
+            </li>
+            <li><a href ng-click="cartHeader.moveCheckedItems(cartHeader.totalPage)">Last Page</a></li>
+            <li>
+              <input type="text" ng-model="pageInput" class="page-input">
+              <button class="btn-go" ng-click="cartHeader.moveCheckedItems(pageInput)">Go</button>
+            </li>
+          </ul>
+      </div>
     </div>
     <div class="pagination-group">
       <dir-pagination-controls on-page-change="cartHeader.pageChanged(newPageNumber)"></dir-pagination-controls>

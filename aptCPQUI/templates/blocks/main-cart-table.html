@@ -1,4 +1,6 @@
+<price-ramp-dialog></price-ramp-dialog>
 <div main-cart="main-cart" class="main-cart-wrapper main-cart-wrapper--overflow">
+	<pricing-guidance-flyout></pricing-guidance-flyout>
 	<div class="loading" ng-show="mainCart.isServerActionInProgress()"></div>
 	<cart-header check-boxes="mainCart.checkBoxes"></cart-header>
 	<div class="main-cart-container--positioning">
@@ -14,7 +16,7 @@
 							<label ng-if="!mainCart.hasGroupByFieldsValues()" style="{{column.HeaderStyle}}">{{column.Label}}</label>
                             <label ng-if="mainCart.hasGroupByFieldsValues()" style="{{column.HeaderStyle}}"> {{mainCart.labels.GroupBy}}
                                 <select name="productGroupByFields" ng-model="mainCart.cartState" 
-                                                            		ng-options="option for option in mainCart.groupByColumnFields"
+                                                            		ng-options="option.Label for option in mainCart.groupByColumnFields"
                                                             		ng-change="mainCart.changeCartState()">
                                 </select>
                             </label>
@@ -22,6 +24,11 @@
 
 						<div ng-if="column.FieldType !== 'DETAIL'">
 							<label style="{{column.HeaderStyle}}">{{column.Label}}</label>
+						</div>
+
+						<!-- Fixed Cart Header Appear on Scroll -->
+						<div cart-label-field="cart-label-field" class="fixed-label" ng-hide="$first">
+							<label>{{column.Label}}</label>
 						</div>
 						
 					</th>
@@ -72,7 +79,8 @@
 										<li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
 											<div class="fieldtype-wrapper fieldtype-wrapper--{{column.FieldType}}">
 												<div ng-if="!chargeLine.isFieldHidden(column.FieldName)" class="full-width">
-													<dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
+													<dynamic-field ng-if="mainCart.isDynamicField(column.FieldType)" 
+																				model="chargeLine.fieldGetterSetter(column.FieldName)" 
 																				 field-type="{{column.FieldType}}"
 																				 is-editable="{{column.IsEditable && chargeLine.isFieldEditable(column.FieldName)}}"
 																				 properties="column">
@@ -133,7 +141,8 @@
 		<li ng-repeat="chargeLine in optionLine.chargeLines" class="charge-line-col">
 			<div class="fieldtype-wrapper fieldtype-wrapper--{{column.FieldType}}">
 				<div ng-if="!chargeLine.isFieldHidden(column.FieldName)" class="full-width">
-					<dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
+					<dynamic-field ng-if="mainCart.isDynamicField(column.FieldType)"
+												 model="chargeLine.fieldGetterSetter(column.FieldName)" 
 												 field-type="{{column.FieldType}}"
 												 is-editable="{{column.IsEditable && chargeLine.isFieldEditable(column.FieldName)}}"
 												 properties="column">
@@ -155,6 +164,7 @@
 		<div class="line-sequence">
 			<div>{{lineItem.primaryLine().sequence()}}</div>
 		</div>
+		<span class="fa fa-ellipsis-v"></span>
 		<div class="checkbox-override">
 			<input type="checkbox" 
 						 id="{{lineItem.txnPrimaryLineNumber}}" 
@@ -175,10 +185,6 @@
 				 ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" 
 				 class="line-item--configurable ss-wrench">
 			</i>
-			<i ng-if="lineItem.isRampEnabled()"
-				 ng-click="mainCart.openRamp(lineItem)"
-				 class="line-item--configurable ss-upwardsbarchart">
-			</i>
 			<i ng-if="lineItem.isConfigurationPending()"
 				ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" 
 			   	class="line-item--alert fa fa-exclamation">
@@ -190,6 +196,10 @@
 		<li ng-repeat="chargeLine in lineItem.chargeLines" class="charge-line-col">
 			<p class="charge-label">
 				{{chargeLine.chargeType()}}
+				<i ng-if="chargeLine.isRampEnabled()"
+				   ng-click="mainCart.openRamp(lineItem)"
+				   class="line-item--configurable ss-upwardsbarchart">
+				</i>
 			</p>
 		</li>
 	</ul>

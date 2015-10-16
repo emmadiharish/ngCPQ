@@ -52,6 +52,7 @@
 	<!-- General -->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/labelService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/cartService.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/priceRampService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/categoryService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/filterSearchService.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/services/configureService.js')}"/>
@@ -130,6 +131,7 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/configureProductHeaderDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/configureProductNavDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/configureProductOptionsDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/configureProductBreadcrumbDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/mainConfigureProductDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/attributeGroupDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/config/attributeGroupsDirective.js')}"/>
@@ -149,6 +151,7 @@
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/miniCartDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/locationCartDirective.js')}"/>
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/pricingGuidanceDirective.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/cart/pricingGuidanceFlyoutDirective.js')}"/>
 	
 	<!-- Assets -->
 	<apex:includeScript value="{!URLFOR($Resource.Apttus_Config2__ngCPQ, '/aptCPQUI/directives/installedproducts/assetSummaryDialogDirective.js')}"/>
@@ -302,7 +305,8 @@
 					performAssetActions: '{!$RemoteAction.RemoteCPQController.performAssetActions}',
 					getReplacementProducts: '{!$RemoteAction.RemoteCPQController.getReplacementProducts}',
 					getAttributeRules: '{!$RemoteAction.RemoteCPQController.getAttributeRules}',
-					calculateMetricsForAssets: '{!$RemoteAction.RemoteCPQController.calculateMetricsForAssets}'
+					calculateMetricsForAssets: '{!$RemoteAction.RemoteCPQController.calculateMetricsForAssets}',
+					getReferenceObjects: '{!$RemoteAction.RemoteCPQController.getReferenceObjects}'
 				};
 				RemoteServiceProvider.setRemoteActions(remoteActions);
 				// Need retURL or other url for redirect. Default is to redirect to '/'. 
@@ -362,7 +366,6 @@
 		</div>
 		<constraint-dialog></constraint-dialog>
 		<product-summary-dialog></product-summary-dialog>
-		<price-ramp-dialog></price-ramp-dialog>
 		<div class="display-actions">
 			<div ui-view="displayActions"></div>
 		</div>

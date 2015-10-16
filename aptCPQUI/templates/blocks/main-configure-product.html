@@ -1,11 +1,7 @@
 
 <div class="main-configure-product block main-block">
   <div main-configure-product="main-configure-product">
-    <h2>
-    	<a ng-if="mainConfigCtrl.showRootNavigation()" 
-    		ui-sref="configure({txnPrimaryLineNumber: mainConfigCtrl.lineItem.rootItem.txnPrimaryLineNumber})">{{mainConfigCtrl.lineItem.rootItem.productName()}}</a> 
-    	<span class="main-configure-product bundle-nav">{{mainConfigCtrl.lineItem.productName()}}</span>
-    </h2>
+    <configure-product-breadcrumb></configure-product-breadcrumb>
     <configure-product-header ng-if="mainConfigCtrl.showBundleHeader()"></configure-product-header>
     <configure-product-nav view="mainConfigCtrl.view"></configure-product-nav>
     <attribute-groups ng-if="mainConfigCtrl.viewAttributes()" line-item="mainConfigCtrl.lineItem"></attribute-groups>

@@ -109,47 +109,32 @@
 		/**
 		 * populates parent node leaf node map
 		 */
-		function setCategoryLeafNodes(categories) {
-			_.forEach(categories, function(category, key){
-				if (category.leaf == false) {
-					setCategoryLeafNodes(category.childCategories);
-					
-				} else {
-					var parentId = category.parentId;
-					if (angular.isDefined(parentId) && parentId !== null) {	
-						categoryLeafNodesMap[parentId] = (categoryLeafNodesMap[parentId] || []);
-						categoryLeafNodesMap[parentId].push(category.nodeId);
-					}
-
-				}
+		function setCategoryLeafNodes(topCategories) {
+			_.forEach(topCategories, function(category, key) {
+				assignCategoryLeafNodes(category);
 				
 			});
-			
-			setParentLeafNodes(Object.keys(categoryLeafNodesMap));
 			
 		}
 		
 		/**
-		 * populates parent node leaf node map
+		 * populates categoryLeafNodesMap
 		 */
-		function setParentLeafNodes(parentCategoryIds) {
-			var grandParentIds = {}; 
-			_.forEach(parentCategoryIds, function(categoryId, index) {
-				var category = idToCategoryMap[categoryId];
-				var parentId = category.parentId;
-				if (angular.isDefined(parentId) && parentId !== null) {	
-					categoryLeafNodesMap[parentId] = (categoryLeafNodesMap[parentId] || []);
-					categoryLeafNodesMap[parentId] = categoryLeafNodesMap[parentId].concat(categoryLeafNodesMap[category.nodeId] || []);
-					grandParentIds[parentId] = true;
+		function assignCategoryLeafNodes(category) {
+			if (category.leaf === true) {
+				return [].concat(category.nodeId);
+				
+			} 
+
+			categoryLeafNodesMap[category.nodeId] = [];
+			
+			_.forEach(category.childCategories, function(childCategory, key) {
+				categoryLeafNodesMap[category.nodeId] = _.union(categoryLeafNodesMap[category.nodeId], assignCategoryLeafNodes(childCategory));
 					
-				}
 			});
 			
-			var grandParentIdList = Object.keys(grandParentIds);
-			if (grandParentIdList.length > 0) {
-				setParentLeafNodes(grandParentIdList);
-			}
-				
+			return categoryLeafNodesMap[category.nodeId];
+			
 		}
 		
 		/**

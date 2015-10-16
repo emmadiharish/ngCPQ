@@ -10,8 +10,10 @@
 		'OptionGroupModelService',
 		'ChargeLineModelService',
 		'AttributeDataService',
+		'AttributesCache',
 		'OptionDataService',
 		'FieldExpressionDataService',
+		'FieldExpressionCache',
 		'LineItemSupport',
 		'AttributeRules',
 		'AttributeMatrix'
@@ -23,14 +25,18 @@
 								 systemConstants, 
 								 OptionGroupModel, 
 								 ChargeLineModel, 
-								 AttributeDataService, 
+								 AttributeDataService,
+								 AttributesCache, 
 								 OptionDataService, 
-								 ExpressionsDataService, 
+								 ExpressionsDataService,
+								 FieldExpressionCache, 
 								 LineItemSupport,
 								 AttributeRules,
 								 AttributeMatrix) {
 		var nsPrefix = systemConstants.nsPrefix;
-		
+		var showTabView = !!systemConstants.customSettings.optionsPageSettings.TabViewInConfigureBundle;
+		var intializedProperties = false;
+
 		/**
 		 * Object used for wrapping line item data to provide getter/setters and
 		 *   organize option lines by group. This function is the return result of
@@ -56,11 +62,8 @@
 				
 			}
 			this.metadataPromise = $q.when(true);
-			//Attribute metadata
-			this.attrGroups = [];
-			this.attrRules = [];
-			this.attrMatrices = [];
-			this.attrFields = {};
+			//Attribute metadata			
+			this.rulesForLine; //keep a copy of rules for context line
 			this.attributeDisplayInfos = undefined;
 
 			//Change tracking & charge lines
@@ -73,8 +76,17 @@
 			this.optionLinesByPLN = {};
 			this.optionLinesByTxnPLN = {};
 			//expression execution
-			this.appliedExpressionInfos = {};
+			this.expressionInfosForLine = {};
 
+			//intialize properties
+			if(!intializedProperties) {
+				this.initProperty('attrRules', this.getAttrRules);
+				this.initProperty('attrFields', this.getAttributeFields);
+				this.initProperty('attrMatrices', this.getAttributeMatrices);
+				this.initProperty('attrGroups', this.getAttributeGroups);
+				this.initProperty('appliedExpressionInfos', this.getAppliedExpressionInfos);				
+				intializedProperties = true;
+			}
 		}
 		
 		/**
@@ -96,37 +108,25 @@
 			var thisItem = this;
 			thisItem._buildChargeLines();
 			thisItem._buildSubItems();
-			var promises = {};        
-			if (thisItem.hasAttrs()) {
-				promises.attrGroups = AttributeDataService.getAttributeGroups(thisItem.productId());
-				promises.attrRules = AttributeDataService.getAttributeRules(thisItem.productId());
+
+			var promises = {};
+			if (thisItem.hasAttrs()) { //a-synchronously fetch the data
+				promises.attrGroups = AttributeDataService.getAttributeGroups(thisItem.productId());				
 				promises.attrFields = AttributeDataService.getAttributeFields();
 				promises.attrMatrices = AttributeDataService.getAttributeMatricesForProduct(thisItem.productId());
-
 			}
 
-			if (thisItem.hasOptions()) {
+			if (thisItem.hasOptions() || (showTabView && thisItem.hasAttrs())) {
 				promises.optionGroups = OptionDataService.getOptionGroups(thisItem.productId());
 
 			}
 
-			if(systemConstants.customSettings.systemProperties.IsEnableFieldExpressions) {
-				promises.appliedExpressionInfos = ExpressionsDataService.getExpressionsForTarget(thisItem.primaryLineNumber());
+			if(systemConstants.customSettings.systemProperties.IsEnableFieldExpressions) { //a-synchronously fetch the data
+				promises.appliedInfos = ExpressionsDataService.getExpressionsForTarget(thisItem.primaryLineNumber());
 
 			}
 
-			thisItem.metadataPromise = $q.all(promises).then(function (results) {
-				//Assign metadata properties as shallow copies.
-				_.assign(thisItem.attrGroups, results.attrGroups);
-				_.assign(thisItem.attrFields, results.attrFields);				
-				_.assign(thisItem.attrMatrices, results.attrMatrices);
-				_.assign(thisItem.appliedExpressionInfos, results.appliedExpressionInfos);				
-				//Merge the attribute rules and store defaults
-				if(results.attrRules) {
-					thisItem.mergeAttrRules(results.attrRules);
-
-				}
-
+			thisItem.metadataPromise = $q.all(promises).then(function (results) {								
 				//Build sub-group structures
 				if (results.optionGroups) {
 					return thisItem._buildSubGroups(results.optionGroups).then(function() {
@@ -142,6 +142,86 @@
 			return thisItem;
 		
 		};
+
+		/**
+		 * Get the applied expression infos for the line item
+		 * @return the applied expression infoes for item
+		 */
+		LineItemModel.prototype.getAppliedExpressionInfos = function() {
+			var expressionsByTarget = FieldExpressionCache.getExpressionsByTarget();
+			var expressionsForTarget;
+			if(expressionsByTarget) {
+				expressionsForTarget = expressionsByTarget[this.primaryLineNumber()];
+
+			}
+
+			return expressionsForTarget || {};
+		}
+
+		/**
+		 * Get the attribute groups for the line item
+		 * @return the attribute groups for this line item
+		 */
+		LineItemModel.prototype.getAttributeGroups = function() {
+			var groupsForProduct = AttributesCache.getAttributeGroupsForProduct(this.productId());
+			return groupsForProduct || [];
+		}
+
+		/**
+		 * Get the attribute rules for the line item
+		 * @return the attribute rules for this line item
+		 */
+		LineItemModel.prototype.getAttrRules = function() {
+			if(angular.isUndefined(this.rulesForLine)) {				
+				var productId = this.productId();
+				var attributeRules = AttributesCache.getAttributeRulesForProduct(productId);
+				if(attributeRules && attributeRules.length) {
+					this.rulesForLine = [];
+					this.mergeAttrRules(angular.copy(attributeRules));
+				}
+			}
+
+			return this.rulesForLine || [];
+		}
+
+		/**
+		 * Get the attribute fields 
+		 * @return the attribute field schema info
+		 */
+		LineItemModel.prototype.getAttributeFields = function() {
+			return AttributesCache.getAttributeFields();
+
+		}
+
+		/**
+		 * Get the attribute rules for the line item
+		 * @return the attribute rules for this line item
+		 */
+		LineItemModel.prototype.getAttributeMatrices = function() {
+			var matricesForProduct = AttributesCache.getAttributeMatricesForProduct(this.productId());
+			return matricesForProduct || [];
+		}
+
+		/**
+		 * Initialize the property		 
+		 */
+		LineItemModel.prototype.initProperty = function(propertyName, getFN, setFN) {
+			var getProperty = function() {
+				var result;
+				if(angular.isDefined(propertyName)) {
+					result = this[propertyName];
+				} 
+				return result;
+			};
+
+			var setProperty = function(val) {
+				this[propertyName] = val;
+			};
+
+			//setup the property
+			Object.defineProperty(LineItemModel.prototype, propertyName, 
+								 { get: (getFN||getProperty), set: (setFN||setProperty) });
+		}
 
 		/** Construct charge lines that come with original data structure*/
 		LineItemModel.prototype._buildChargeLines = function() {
@@ -383,11 +463,11 @@
 					}
 				}
 											
-				_.merge(thisLine.attrRules, newValue);
-				if(thisLine.attrRules) {
-					for(var i = 0, len = thisLine.attrRules.length; i < len; i++) {
-				 		if(thisLine.attrRules[i].defaultValueActions) {
-				 			var defaultActions = thisLine.attrRules[i].defaultValueActions;
+				_.merge(thisLine.rulesForLine, newValue);
+				if(thisLine.rulesForLine) {
+					for(var i = 0, len = thisLine.rulesForLine.length; i < len; i++) {
+				 		if(thisLine.rulesForLine[i].defaultValueActions) {
+				 			var defaultActions = thisLine.rulesForLine[i].defaultValueActions;
 				 			for(var j = 0, defaultRuleLen = defaultActions.length; j < defaultRuleLen; j++) {
 				 				var ruleInfo = defaultActions[j];
 				 				if(defaultToValues[ruleInfo.Id]) {
@@ -517,11 +597,12 @@
 		 * @return {Object} the display properties object used with dynamic field component
 		 */
 		LineItemModel.prototype.getAttributeDisplayInfo = function(attributeId) {			
-			if(angular.isUndefined(this.attributeDisplayInfos)) {
-				this.attributeDisplayInfos = {}; //generate initial results
+			if(this.attrFields
+					&& angular.isUndefined(this.attributeDisplayInfos)) {				
 				this.processAttributeRules();
 			}
-			return this.attributeDisplayInfos[attributeId];
+
+			return this.attributeDisplayInfos ? this.attributeDisplayInfos[attributeId] : undefined;
 		};
 
 		/**
@@ -682,6 +763,26 @@
 			if (!this.lineItemDO.isSelected) {
 				this.lineItemDO.isSelected = true;
 				this.isSelectedDirty = true;
+				if(this.parentItem !== false) {					
+					if(this.parentItem.hasAttrs()) {						
+						var thisLineSO = this.lineItemSO();
+						var parentLineSO = this.parentItem.lineItemSO();
+						var parentAttrSO = this.parentItem.attrSO();
+						var configId = thisLineSO[nsPrefix+'ConfigurationId__c'];
+
+						if(this.hasAttrs()) {
+							//create new attribute
+							var newAttrSO = angular.copy(parentAttrSO);
+							newAttrSO.Id = configId;
+							thisLineSO[nsPrefix+'AttributeValueId__c'] = configId;
+							thisLineSO[nsPrefix+'AttributeValueId__r'] = newAttrSO;
+						} else { //match parents
+							thisLineSO[nsPrefix+'AttributeValueId__c'] = parentAttrSO.Id;
+							thisLineSO[nsPrefix+'AttributeValueId__r'] = {'Id': parentAttrSO.Id}; //minimual fields needed by server
+						}
+					}
+				}
+
 				_.forEach(this.optionGroups, function (nextGroup) {
 					nextGroup.selectDefaults();
 				});
@@ -692,38 +793,52 @@
 
 		};
 
-		LineItemModel.prototype.processAttributeRules = function() {	        
-	        //process the attribute rules
-	        var ruleResults;	       
+		LineItemModel.prototype.processAttributeRules = function(useLastResults) {
+	        if(!this.attrFields) { //missing the attribute schema info
+	        	return undefined;
+
+	        }
+
+	        //get attribute so
+	        var attrSO = this.attrSO();
+	        //process the attribute rules	        
+	        var ruleResults;
 	        if(this.attrRules.length) {
-	        	ruleResults = AttributeRules.processAttributeRules(this.lineItemSO(), this.attrRules);
+	        	ruleResults = AttributeRules.processAttributeRules(this.lineItemSO(), this.attrRules);	        	
 	        }
 
 	        //process the Attribute Matrices
 	        var matrixResults = {};
 	        if(this.attrMatrices.length) {
-	        	matrixResults = AttributeMatrix.processAttributeMatrices(this.attrSO(), this.attrMatrices, this.attrFields);
+	        	matrixResults = AttributeMatrix.processAttributeMatrices(attrSO, this.attrMatrices, this.attrFields);	        	
 		    }
 
-		    var allowedAttrValues = {}; //allowable values
-	        this.attributeDisplayInfos = this.attributeDisplayInfos || {};
+		    var allowedAttrValues = {}; //allowable values	        
+	        var allDisplayInfos = this.attributeDisplayInfos;
+	        var readyForDisplay = true;
 	        for(var i = 0, attrGroupLen = this.attrGroups.length; i < attrGroupLen; i++) {
 	        	var attributeGroup = this.attrGroups[i];
 	        	if(attributeGroup) {
 		        	var attributes = attributeGroup[nsPrefix+'Attributes__r'];
-		        	if(attributes) {
-		        		if (angular.isUndefined(this.attributeDisplayInfos)) {
-		        			this.attributeDisplayInfos = {};
+		        	if(attributes) {		        		
+		        		if (angular.isUndefined(allDisplayInfos)) {
+		        			allDisplayInfos = {};
 		        		}
+
 			        	for(var j = 0, attrLen = attributes.length; j < attrLen; j++) {
 			        		var attribute = attributes[j];
 			        		var attributeName = attribute[nsPrefix+'Field__c'];
 			        		
 			        		var fieldMetadata = this.attrFields[attributeName];
-							var attributeDisplayInfo = this.attributeDisplayInfos[attribute.Id];
+							var attributeDisplayInfo = allDisplayInfos[attribute.Id];
 							if(!angular.isDefined(attributeDisplayInfo)) {
+								if(!!!fieldMetadata) { //field schema not available yet
+									readyForDisplay = false;
+									continue;
+
+								}
 								attributeDisplayInfo = angular.copy(fieldMetadata);
-								this.attributeDisplayInfos[attribute.Id] = attributeDisplayInfo;
+								allDisplayInfos[attribute.Id] = attributeDisplayInfo;
 							}
 
 							//ABC rule can override editable property
@@ -774,6 +889,7 @@
 
 								}
 
+								var currentAttrValue = attrSO[attributeName];
 								if(fieldType === 'picklist') {
 									if(allowedValues === true && (attributeDisplayInfo.previouslyContrained === true || 
 																  angular.isUndefined(attributeDisplayInfo.previouslyContrained))) { //reset list									
@@ -781,8 +897,8 @@
 									} else {
 										var allEntries = fieldMetadata.pickListEntries;									
 										attributeDisplayInfo.pickListEntries = [];
-										for(var i = 0, max = allEntries.length; i < max; i++) {
-											var entry = allEntries[i];
+										for(var ii = 0, max = allEntries.length; ii < max; ii++) {
+											var entry = allEntries[ii];
 											if(allowedValues === true || allowedValues.indexOf(entry.value) >= 0) {
 												attributeDisplayInfo.pickListEntries.push(entry);
 											}
@@ -790,11 +906,11 @@
 
 										//update the selection
 										if(allowedValues !== true) {
-											var attrValue = this.attrSO()[attributeName];
+											var attrValue = attrSO[attributeName];
 											if(angular.isDefined(attrValue) && attrValue !== null 
 													&& String(attrValue) !== '') {
 												if(allowedValues.indexOf(attrValue) < 0) {
-													this.attrSO()[attributeName] = null;
+													attrSO[attributeName] = null;
 												}
 											}
 										}
@@ -813,7 +929,7 @@
 
 									//update the selection
 									if(allowedValues !== true) {
-										var attrValue = this.attrSO()[attributeName];										
+										var attrValue = attrSO[attributeName];
 										if(angular.isDefined(attrValue) && attrValue !== null
 												&& String(attrValue) !== '') {
 											var selectedValues = attrValue.split(';');
@@ -824,34 +940,47 @@
 													updatedValues.push(selectedValue);													
 												}
 											}
-											this.attrSO()[attributeName] = updatedValues.length 
-																		 ? updatedValues.join(';')
-																		 : null;
+											attrSO[attributeName] = updatedValues.length 
+																  ? updatedValues.join(';')
+																  : null;
 										}
 									}
 								}
 
-								//only one value available, choose it
-								if(allowedValues.length == 1) { 
-									this.attrSO()[attributeName] = allowedValues[0];
+								//only one value available, choose it								
+								if(allowedValues !== true && allowedValues.length === 1) {
+									currentAttrValue
+									var newAttrValue = attrSO[attributeName];
+									var prevChoiceCount = attributeDisplayInfo.prevChoiceCount;
+									if(angular.isUndefined(currentAttrValue) || currentAttrValue === null
+											&& (angular.isUndefined(newAttrValue) || newAttrValue === null)
+											&& prevChoiceCount !== 1) {
+										attrSO[attributeName] = allowedValues[0];
+									}
 								}
-
+								//save the previous choice count
+								attributeDisplayInfo.prevChoiceCount = allowedValues == true ? allowedValues : allowedValues.length;
 								//set previously constrained flag
 								attributeDisplayInfo.previouslyContrained = allowedValues !== true;
+								//set previous value
+								attributeDisplayInfo.previousValue = attrSO[attributeName];
 							}
 						}
 					}
 				}
 			}
+
+			if(readyForDisplay) {
+				this.attributeDisplayInfos = allDisplayInfos;
+
+			} else {
+				this.attributeDisplayInfos = undefined;
+			}
 		};
 
-	    LineItemModel.prototype.attrGroup = function(groupId) {
-			for (var i = 0; i < this.attrGroups.length; i++) {
-				if (this.attrGroups[i].Id === groupId) {
-					return this.attrGroups[i]; 
-				}
-			}
-			return null;
+	    LineItemModel.prototype.attrGroup = function(groupId) {			
+			return AttributesCache.getAttributeGroup(groupId);
+
 		};
 	    
 	    LineItemModel.prototype.attrSO = function() {

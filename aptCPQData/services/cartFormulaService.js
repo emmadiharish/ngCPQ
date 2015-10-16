@@ -525,11 +525,11 @@
 		* @return  TRUE if it does. Otherwise, returns FALSE
 		*/
 		function contains(text, compareText) {
-			if((text == null) || (text == '') || (compareText == null) || (compareText = '')) {
+			if((text === null) || (String(text) === '') || (compareText === null) || (String(compareText) === '')) {
 				return false;
 			}
 
-			return text.indexOf(compareText) >= 0;
+			return String(text).indexOf(String(compareText)) >= 0;
 		}
 
 		/**

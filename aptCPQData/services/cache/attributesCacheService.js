@@ -6,9 +6,10 @@
 		var cache = this;
 
 		var productToAttributeGroupsMap, lineItemToAttributeValueMap, attributeFields, attributeRules;
-
+		
 		cache.putAttributeGroupsForProduct = putAttributeGroupsForProduct;
 		cache.getAttributeGroupsForProduct = getAttributeGroupsForProduct;
+		cache.getAttributeGroup = getAttributeGroup;
 		cache.putAttributeFields = putAttributeFields;
 		cache.getAttributeFields = getAttributeFields;
 		cache.getAttributeValueSOForLineItem = getAttributeValueSOForLineItem;
@@ -16,7 +17,7 @@
 		cache.getAttributeRulesForProduct = getAttributeRulesForProduct;
 		cache.getAttributeDefaultRules = getAttributeDefaultRules;
 		cache.putAttributeRules = putAttributeRules;
-		cache.putAttributeRulesForProduct = putAttributeRules;		
+		cache.putAttributeRulesForProduct = putAttributeRulesForProduct;		
 		cache.getAttributeMatricesForProduct = getAttributeMatricesForProduct;
 		cache.putAttributeMatrices = putAttributeMatrices;
 		cache.putAttributeMatricesForProduct = putAttributeMatricesForProduct;
@@ -34,6 +35,7 @@
 		function resetAttributes() {
 			cache.isValid = false;
 			productToAttributeGroupsMap = {};
+			attributeGroupsById = {};
 			lineItemToAttributeValueMap = {};
 			attributeRules = {};
 			attributeDefaultRules = {};
@@ -49,8 +51,22 @@
 				return;
 			}
 
-			productToAttributeGroupsMap[productId] = AttributeGroups;
-			
+			productToAttributeGroupsMap[productId] = AttributeGroups;			
+			for(var i = 0, groupLen = AttributeGroups.length; i < groupLen; i++) {
+				var group = AttributeGroups[i];
+				attributeGroupsById[group.Id] = group;				
+			}
+		}
+
+		/**
+		 * get attributes for the product
+	     */
+		function getAttributeGroup(groupId) {
+			if (!attributeGroupsById[groupId]) {
+				return null;
+
+			}
+			return attributeGroupsById[groupId];
 
 		}
 

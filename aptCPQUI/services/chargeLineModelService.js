@@ -186,20 +186,39 @@
 						refField = 'Name';
 
 					}
-					if (angular.isDefined(newValue) && newValue !== refObj[refField]) {
+
+					if (angular.isDefined(newValue)) {						
+						var modelVal = refObj[refField];
 						refObj[refField] = newValue;
 						thisLine.dirtyFields[fieldName] = true;
 						this.isDirty = true;
 
-						// run the Numeric Expressions and defaults						
-						RuleService.applyRulesOnChange(lineItemSO.Id, fieldName);
-						//process attribute rules for context line						
-						var hasAttrRules = angular.isDefined(thisLine.parentItem.attrRules) && thisLine.parentItem.attrRules.length > 0;
-						var hasAttrMatrices = angular.isDefined(thisLine.parentItem.attrMatrices) && thisLine.parentItem.attrMatrices.length > 0;
-						var hasAttributes = angular.isDefined(thisLine.parentItem.attrGroups) && thisLine.parentItem.attrGroups.length > 0;
-						if((hasAttrRules || hasAttrMatrices) && hasAttributes) {
-							thisLine.parentItem.processAttributeRules();
+						if(newValue !== modelVal) {
+							if(newValue !== null || 
+							   (angular.isDefined(modelVal) && modelVal !== null)) {							
+								try {														
+									// run the Numeric Expressions and defaults						
+									RuleService.applyRulesOnChange(lineItemSO.Id, fieldName);								
+								} catch(e) {
+									$log.error('Field Expressions and ABC defaults failed to execute. ' + e);
+
+								}
+
+								//process attribute rules for context line						
+								var hasAttrRules = angular.isDefined(thisLine.parentItem.attrRules) && thisLine.parentItem.attrRules.length > 0;
+								var hasAttrMatrices = angular.isDefined(thisLine.parentItem.attrMatrices) && thisLine.parentItem.attrMatrices.length > 0;
+								var hasAttributes = angular.isDefined(thisLine.parentItem.attrGroups) && thisLine.parentItem.attrGroups.length > 0;
+								if((hasAttrRules || hasAttrMatrices) && hasAttributes) {
+									try {
+										thisLine.parentItem.processAttributeRules();
+									} catch(e) {
+										$log.error('ABC rules failed to execute. ' + e);
+									}
+								}
+							}
 						}
+
+						// thisLine.markPricePending();
 						//TODO: put a function in LineItemSupport for determining which fields should cause PricePending
 						// if (refField.indexOf('LineSequence__c') < 0) {
 						// 	thisLine.markPricePending();
@@ -229,6 +248,16 @@
 		};
 
 		ChargeLineModel.prototype.isFieldEditable = function(fieldName) {
+			var qtyField = LineItemSupport.getFullyQualifiedName('Quantity__c');
+			if (fieldName === qtyField) {
+				var isQtyModField = LineItemSupport.getFullyQualifiedName('IsQuantityModifiable__c');
+				var isQtyModifiable = this.field(isQtyModField);
+				if (angular.isDefined(isQtyModifiable)) {
+					return isQtyModifiable;
+					
+				}
+
+			}
 			var readOnlyFields = this.lineItemDO.readOnlyFields;
 			if (angular.isArray(readOnlyFields)) {
 				return readOnlyFields.indexOf(fieldName) < 0;
@@ -247,8 +276,14 @@
 			return false;
 
 		};
-		
 
+		ChargeLineModel.prototype.isRampEnabled = function() {
+			var priceGroupField = LineItemSupport.getFullyQualifiedName('PriceGroup__c');
+			var isPrimaryRampLine = LineItemSupport.getFullyQualifiedName('IsPrimaryRampLine__c');
+			return this.lineItemDO.lineItemSO[priceGroupField] === 'Price Ramp' || this.lineItemDO.lineItemSO[isPrimaryRampLine];
+
+		};
+		
 		/** Often-used getters */
 
 		ChargeLineModel.prototype.primaryLineNumber = function() {
@@ -311,19 +346,35 @@
 				var attrSO = thisLine.attrSO();				
 				//Construct a new function for modifying attr object.
 				thisLine.attrGetterSetters[attrName] = function (newValue) {
-					if (angular.isDefined(newValue) && newValue !== attrSO[attrName]) {
+					if (angular.isDefined(newValue)) {	
+						var attrValue = attrSO[attrName];					
+						
 						attrSO[attrName] = newValue;
 						thisLine.attrDirtyFields[attrName] = true;
-						thisLine.isAttrDirty = true;
+						thisLine.isAttrDirty = true;						
+						if(attrValue !== newValue) {
+							if(newValue !== null ||
+							   (angular.isDefined(attrValue) && attrValue !== null)) {
+								try {
+									// run the Numeric Expressions and defaults
+									RuleService.applyRulesOnChange(attrSO.Id, attrName);
+								} catch(e) {
+									$log.error('Field Expressions and ABC defaults failed to execute. ' + e);
 
-						// run the Numeric Expressions and defaults						
-						RuleService.applyRulesOnChange(attrSO.Id, attrName);
-						//process attribute rules for context line
-						var hasAttrRules = angular.isDefined(thisLine.parentItem.attrRules) && thisLine.parentItem.attrRules.length > 0;
-						var hasAttrMatrices = angular.isDefined(thisLine.parentItem.attrMatrices) && thisLine.parentItem.attrMatrices.length > 0;
-						var hasAttributes = angular.isDefined(thisLine.parentItem.attrGroups) && thisLine.parentItem.attrGroups.length > 0;
-						if((hasAttrRules || hasAttrMatrices) && hasAttributes) {
-							thisLine.parentItem.processAttributeRules();
+								}
+
+								//process attribute rules for context line
+								var hasAttrRules = angular.isDefined(thisLine.parentItem.attrRules) && thisLine.parentItem.attrRules.length > 0;
+								var hasAttrMatrices = angular.isDefined(thisLine.parentItem.attrMatrices) && thisLine.parentItem.attrMatrices.length > 0;
+								var hasAttributes = angular.isDefined(thisLine.parentItem.attrGroups) && thisLine.parentItem.attrGroups.length > 0;
+								if((hasAttrRules || hasAttrMatrices) && hasAttributes) {
+									try {
+										thisLine.parentItem.processAttributeRules();
+									} catch(e) {
+										$log.error('ABC rules failed to execute. ' + e);
+									}
+								}
+							}
 						}
 						
 						// thisLine.markPricePending();

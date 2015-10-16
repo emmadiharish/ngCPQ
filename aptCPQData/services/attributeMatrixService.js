@@ -169,36 +169,43 @@
 			        matrixInfo.hashKeys = keyMap;
 			    }
 
-				var columns = JSON.parse(matrixInfo.columns).columns;
-				var items = [];
-				for(var columnIdx in columns) {
+			    var columnDetails = JSON.parse(matrixInfo.columns);			    
+				var columns = columnDetails.columns;
+				var items = [];				
+				var nillValueCount = 0;				
+				for(var columnIdx in columns) {				
 					if(columns.hasOwnProperty(columnIdx)) {
 						var fieldName = columns[columnIdx];
 						var fieldType = fieldMetadata[fieldName].FieldType.toLowerCase();
 						var isSelectType = (fieldType === 'multipicklist') || (fieldType === 'picklist');							
 						var isMultiSelect = fieldType === 'multipicklist';						
+						var itemValue = attributeSO[fieldName];
 						var item = {
 							'Id':fieldName,
-							'value':attributeSO[fieldName],
+							'value':itemValue,
 							'isMultiSelect':isMultiSelect,
 							'isSelectType':isSelectType
 						};
+
 						//add item to collection
 						items.push(item);
-					}
+					}					
 				}
 
 				var validCombinations =  getAvailableValues(items, matrixInfo);
 				for(fieldName in validCombinations) {
-					var availableForField = availableValues[fieldName];
-					if(angular.isUndefined(availableForField)) {
-						availableForField = validCombinations[fieldName];
-					} else {
-						//intersection of available values
-						availableForField = _.intersection(availableForField, validCombinations);
+					if(validCombinations.hasOwnProperty(fieldName)) {
+						var availableForField = availableValues[fieldName];
+						var validCombination = validCombinations[fieldName];
+						if(angular.isUndefined(availableForField)) {
+							availableForField = validCombination;
+						} else {
+							//intersection of available values
+							availableForField = _.intersection(availableForField, validCombination);
+						}
+						//set available values
+						availableValues[fieldName] = availableForField;
 					}
-					//set available values
-					availableValues[fieldName] = availableForField;
 				}
 			}
 
@@ -227,18 +234,19 @@
 	            var isSelectType = levelInput.isSelectType;
 
 	            var nodeKeys = {};
-	            var hasNodeKey = false;
+	            var isWildCard = true; //wildcard behavior by default
 	            if(angular.isDefined(levelInput)
-	            		&& angular.isDefined(levelInput.value)) {
+	            		&& angular.isDefined(levelInput.value)
+	            		&& levelInput.value !== null) {
 	            	var nodeKey = matrixInfo.reverseKeys[levelInput.value];
 	              	if(angular.isDefined(nodeKey)) {
 	              		nodeKeys[nodeKey] = nodeKey;
-	              		hasNodeKey = true;
+	              		isWildCard = false;
 	              	}
 	            }
-	             
+
 	            //console.log('level=' + level + '  nodeKey=' + nodeKey + ' node.letter==' + node.letter);
-	            if(!hasNodeKey) { //wildcards     
+	            if(isWildCard) { //wildcards     
 	            	if(level < items.length - 1) {
 	                    for(var i=0; i < levelSize; i++) {                    
 	                        var node = nodesForLevel.shift();                        
@@ -323,6 +331,11 @@
 	                }
 
 	                availableValues[item.Id] = valuesForLevel;
+	            }
+
+	            for(; level < items.length;  level++) {
+	            	var column = items[level];
+	            	availableValues[column.Id] = [];
 	            }
 	        }
 

@@ -4,7 +4,8 @@
 	angular.module('aptCPQUI')
 	.service('ConfigureService', ConfigureService);
 
-	ConfigureService.$inject = ['$q',
+	ConfigureService.$inject = [
+		'$q',
 		'$log',
 		'systemConstants',
 		'LineItemModelService',
@@ -14,10 +15,11 @@
 		'ConfigurationDataService'
 	];
 	 
-	function ConfigureService($q, $log, systemConstants, LineItemModel, OptionDataService, CartDataService, ConstraintRuleDataService, ConfigurationDataService) {
+	function ConfigureService($q, $log,  systemConstants, LineItemModel, OptionDataService, CartDataService, ConstraintRuleDataService, ConfigurationDataService) {
 		var service = this;
 		var nsPrefix = systemConstants.nsPrefix;
-		service.excludedOptionIds = [];
+		service.excludedOptionIds = {};
+		service.pageSettings = {};
 
 		/**
 		 * Initialize line item to be displayed with in config state directives.
@@ -42,7 +44,8 @@
 			var pageUrl = optionGroup.getDetailPageUrl();
 			var optionGroupId = optionGroup.groupInfo.id;
 			return ConfigurationDataService.formatPageUrl(pageUrl) 
-				+ '&primaryLineNumber=' + service.lineItem.txnPrimaryLineNumber
+				+ '&primaryLineNumber=' + service.lineItem.primaryLineNumber()
+				+ '&lineItemId=' + service.lineItem.lineItemSO().Id
 				+ '&optionGroupId=' + optionGroupId;
 		};
 		
@@ -62,12 +65,17 @@
 			// var contextBundleNumber = service.lineItem ? service.lineItem.lineItemSO()[nsPrefix + 'PrimaryLineNumber__c'] : undefined;
 			var contextBundleNumber = service.lineItem ? service.lineItem.primaryLineNumber() : undefined;
 			if (!contextBundleNumber) {
-				service.excludedOptionIds.length = 0;
+				// service.excludedOptionIds.length = 0;
+				service.excludedOptionIds = {};
 				return $q.when(service.excludedOptionIds);
 
 			}
 			return CartDataService.getExcludedOptionIds(contextBundleNumber).then(function(optionIds){
-				Array.prototype.splice.apply(service.excludedOptionIds, [0, service.excludedOptionIds.length].concat(optionIds));
+				// Array.prototype.splice.apply(service.excludedOptionIds, [0, service.excludedOptionIds.length].concat(optionIds));
+				service.excludedOptionIds = {};
+				for (var optionIndex = 0; optionIndex < optionIds.length; optionIndex++) {
+					service.excludedOptionIds[optionIds[optionIndex]] = true;
+				}
 				return service.excludedOptionIds;
 				
 			});

@@ -18,25 +18,27 @@
 
 	}
 
-	MainCartCtrl.$inject = [
-	                        '$q',
-	                        '$log',
-	                        '$state',
-	                        '$stateParams',
-	                        'aptBase.i18nService',
-	                        'systemConstants',
-	                        'CartService',
-	                        'ActionHandlerService',
-	                        'CatalogDataService'
-	                        ];
+	MainCartCtrl.$inject = ['lodash',
+							'$q',
+							'$log',
+							'$state',
+							'$stateParams',
+							'aptBase.i18nService',
+							'systemConstants',
+							'CartService',
+							'PriceRampService',
+							'ActionHandlerService',
+							'CatalogDataService',
+							];
 
-	function MainCartCtrl($q, $log, $state, $stateParams, i18nService, systemConstants, CartService, ActionHandlerService, CatalogDataService) {
+	function MainCartCtrl(_, $q, $log, $state, $stateParams, i18nService, systemConstants, CartService, PriceRampService, ActionHandlerService, CatalogDataService) {
 		var mainCart = this;
-		mainCart.view = $stateParams.view;
+		// mainCart.view = $stateParams.view;
 		mainCart.dateFormat = systemConstants.dateFormat;
 		mainCart.itemsPerPage = systemConstants.customSettings.systemProperties.LineItemsPerPage;
 		mainCart.labels = i18nService.CustomLabel;
 		mainCart.cartState;
+
 
 		var nsPrefix = systemConstants.nsPrefix;
 
@@ -88,17 +90,19 @@
 
 		};
 		mainCart.openRamp = function(lineItem) {
-			return CartService.setRampDetails(lineItem);
+			return PriceRampService.setRampDetails(lineItem);
 
 		};
 		mainCart.changeCartState = function() {
-            if(mainCart.cartState == 'Location') {
-                $state.go('location-cart');
-            } 
-        };
-        mainCart.hasGroupByFieldsValues = function() {
-        	return mainCart.groupByColumnFields.length > 1; // return true if groupByValues available other than product.
-        };
+
+			if(!(_.includes(mainCart.cartState.FieldName, nsPrefix+'ProductId__r'))) {
+				$state.go('cart.groupBy', {groupKey: mainCart.cartState.FieldName});
+			}
+		
+		};
+		mainCart.hasGroupByFieldsValues = function() {
+			return mainCart.groupByColumnFields.length > 1; // return true if groupByValues available other than product.
+		};
 
 		function activate() {
 			return $q.all([CartService.getCartLineItems(), CartService.getCartColumns(), CartService.getCheckboxModels(), CartService.getCartLocations()]).then(function(res) {
@@ -108,31 +112,51 @@
 				mainCart.checkBoxes = CartService.cartCheckBoxModels;
 				mainCart.groupByColumnFields = [];
 				mainCart.cartLocations = res[3];
-
+				
 				mainCart.columnTypes = columns.map(function(column) {
 					var replace_r;
-					if (column.FieldType === 'REFERENCE') {
-						replace_r = column.FieldName.replace('__c', '__r');
-						column.FieldName = replace_r;
-						//TODO: support modifying reference fields
-						column.IsEditable = false;
+					if ( column.FieldType === 'REFERENCE' ) {
+						if ( column.IsEditable == false )
+						{
+							replace_r = column.FieldName.replace('__c', '__r');
+							column.FieldName = replace_r;
+							// TODO: support modifying reference fields
+						} else { // IsEditable == true
+							column.pickListEntries = [];
+							CartService.getReferenceObjects(column.SObjectName).then(function(result){
+								if (angular.isDefined(result) && angular.isArray(result)) {
+									result.forEach(function(obj){
+										column.pickListEntries.push({
+											"active" : true,
+											"defaultValue" : false,
+											"label" : obj.Name,
+											"value" : obj.Id
+										});
+									});
+								}
+							});
+						}
 					}
+
 					if (column.FieldName.indexOf('ProductId__r') > -1) {
+						column.IsEditable = false;
 						column.FieldType = 'DETAIL';
-						mainCart.groupByColumnFields.push(column.Label);
-						mainCart.cartState = column.Label;
+						mainCart.groupByColumnFields.push(column);
+						mainCart.cartState = column;
 					} else if (column.FieldName.indexOf('ChargeType') > -1) {
 						column.FieldType = 'CHARGETYPE';
 						mainCart.chargeKey = column.FieldName;
 					} else if (column.FieldName.indexOf('Quantity') > -1) {
 						column.FieldType = 'QUANTITY';
-					} else if(column.FieldName.indexOf('LocationId__r') > -1 && mainCart.cartLocations.length > 0) {
-						mainCart.groupByColumnFields.push(column.Label);
-                    } else if (column.FieldName.indexOf('Guidance__c') > -1) {
-                        column.FieldType = 'GUIDANCE';
-                    }
+					} else if(column.FieldName.indexOf(nsPrefix + 'LocationId__') > -1 && mainCart.cartLocations.length > 0) {
+						mainCart.groupByColumnFields.push(column);
+					} else if (column.FieldName.indexOf(nsPrefix + 'Guidance__c') > -1) {
+							column.FieldType = 'GUIDANCE';
+					}
+
 					return column;
 				});
+				
 				mainCart.tableColumns = mainCart.columnTypes.filter(function(column) {
 					if (column.FieldName.indexOf('ChargeType') <= -1) {
 						return true;

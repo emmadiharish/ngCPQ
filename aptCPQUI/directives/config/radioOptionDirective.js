@@ -41,7 +41,7 @@
 
 			}
 			var optionId = radioCtrl.option.optionComponent[nsPrefix + 'ComponentProductId__c'];
-			return ConfigureService.excludedOptionIds.indexOf(optionId) > -1;
+			return ConfigureService.excludedOptionIds[optionId] === true;
 
 		};
 

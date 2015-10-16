@@ -165,6 +165,10 @@
 			});
 		};
 
+		this.getReferenceObjects = function(refObjKey){
+			return ConfigDataService.getReferenceObjects(refObjKey);
+		};
+
 		this.getColumnMetadata = function() {
 			if(isAssetDisplayColumnCacheValide) {
 				return $q.when(assetServiceRef.assetColumnMetadata);

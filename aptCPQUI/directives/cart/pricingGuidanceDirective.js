@@ -26,9 +26,9 @@
 
 	};
 
-	PricingGuidanceCtrl.$inject = ['$log', 'systemConstants'];
+	PricingGuidanceCtrl.$inject = ['$log', 'systemConstants', 'CartService'];
 	
-	function PricingGuidanceCtrl($log, systemConstants) {
+	function PricingGuidanceCtrl($log, systemConstants, CartService) {
 		var ctrl = this;
 		var nsPrefix = systemConstants.nsPrefix;
 		
@@ -39,7 +39,7 @@
 
 				ctrl.properties = (angular.isDefined(ctrl.properties)) ? ctrl.properties : {};			
 				ctrl.guidance = (angular.isDefined(guidanceValue)) ? guidanceValue : "";
-				ctrl.pricingGuidance = (angular.isDefined(pricingGuidance)) ? pricingGuidance : {};
+				ctrl.pricingGuidance = (angular.isDefined(pricingGuidance)) ? getJSONObject(pricingGuidance) : {};
 			}
 		}
 
@@ -49,11 +49,29 @@
 			return ratingCSSPrefix + ratingColor;
 		}
 
+		ctrl.setPricingGuidance = function(domElem) {
+			ctrl.pricingGuidance.guidanceBtnElement = domElem;
+			CartService.setPricingGuidance(ctrl.pricingGuidance);
+		}
+
+		function getJSONObject(JSONString) {
+			try {
+				return JSON.parse(JSONString);
+			} catch(e) {
+				$log.error("Error while parsing Guidance JSON String : " + JSONString);
+				return {};
+			}
+		}
+
 		init();
 	}
 
 	function pricingGuidanceLink(scope, elem, attr, ctrl) {
-		//Todo: need to add onclick event handler for flyover
+		elem.on('click', function(e){
+			ctrl.setPricingGuidance(this);
+			e.stopPropagation();
+			scope.$apply();
+		});
 	}
 
 }).call(this);

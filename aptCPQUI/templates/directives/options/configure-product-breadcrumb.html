@@ -1,0 +1,8 @@
+    <h2>
+    	<div ng-repeat="lineItem in breadCrumb.getCrumbs()" class="bundle-breadcrumb">
+	    	<a ng-if="!breadCrumb.isCurrentItem(lineItem)" 
+	    		ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})">{{lineItem.productName()}}</a> 
+	    	<span ng-if="breadCrumb.isCurrentItem(lineItem)"
+	    			class="main-configure-product bundle-nav">{{lineItem.productName()}}</span>
+    	</div>
+    </h2>

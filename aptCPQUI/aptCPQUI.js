@@ -63,27 +63,27 @@
 		$stateProvider.state('catalog', {
 		resolve: {
 			initCatalogService: [
-                 '$state', '$stateParams', '$q', 'systemConstants', 'ConfigurationDataService', 'CategoryService',
-                 function($state, $stateParams, $q, systemConstants, ConfigurationDataService, CategoryService) {
-                	 return ConfigurationDataService.getCustomCatalogPageUrl().then(function(pageUrl) {
-                		 if (pageUrl != null) {
-                			 window.location = pageUrl;
-                			 //handles first time returning from VF page scenario
-                			 window.setTimeout(function(){window.location = pageUrl}, 1000);
-                			 return $q.reject();
+								 '$state', '$stateParams', '$q', 'systemConstants', 'ConfigurationDataService', 'CategoryService',
+								 function($state, $stateParams, $q, systemConstants, ConfigurationDataService, CategoryService) {
+									 return ConfigurationDataService.getCustomCatalogPageUrl().then(function(pageUrl) {
+										 if (pageUrl != null) {
+											 window.location = pageUrl;
+											 //handles first time returning from VF page scenario
+											 window.setTimeout(function(){window.location = pageUrl}, 1000);
+											 return $q.reject();
 
-                		 } else {
-                			 return CategoryService.getDefaultSearchCategory().then(function(categoryId){
-                				 if (categoryId) {
-                					 $state.go('category', {
-                						 categoryId: categoryId
-                					 });
-                				 }
-                			 });
-                		 }
-                	 });
-                 }
-             ]
+										 } else {
+											 return CategoryService.getDefaultSearchCategory().then(function(categoryId){
+												 if (categoryId) {
+													 $state.go('category', {
+														 categoryId: categoryId
+													 });
+												 }
+											 });
+										 }
+									 });
+								 }
+						 ]
 			},
 			url: '/catalog',
 			views: {
@@ -223,30 +223,27 @@
 			url: '/cart',
 			resolve: {
 				initCartService: [
-                  '$state', '$q', 'CartDataService', 'ConfigurationDataService', 
-                  function($state, $q, CartDataService, ConfigurationDataService) {
-                	  return CartDataService.getCartLineItems().then(function(cartLineItems) {
-                		  if(!(angular.isArray(cartLineItems) && cartLineItems.length > 0)){
-                			  $state.go('catalog');
+									'$state', '$q', 'CartDataService', 'ConfigurationDataService', 
+									function($state, $q, CartDataService, ConfigurationDataService) {
+										return CartDataService.getCartLineItems().then(function(cartLineItems) {
+											if(!(angular.isArray(cartLineItems) && cartLineItems.length > 0)){
+												$state.go('catalog');
 
-                		  } else {
+											} else {
 
-                			  return ConfigurationDataService.getCustomCartPageUrl().then(function(pageUrl) {
-                				  if (pageUrl != null) {
-                					  window.location = pageUrl;
-                					  //handles first time returning from VF page scenario
-                					  window.setTimeout(function(){window.location = pageUrl}, 1000);
-                					  return $q.reject();
-                				  }
-                			  });
-                		  }
-                	  });
+												return ConfigurationDataService.getCustomCartPageUrl().then(function(pageUrl) {
+													if (pageUrl != null) {
+														window.location = pageUrl;
+														//handles first time returning from VF page scenario
+														window.setTimeout(function(){window.location = pageUrl}, 1000);
+														return $q.reject();
+													}
+												});
+											}
+										});
 
-                  }
-              ]
-			},
-			params: {
-				view: 'detail'
+									}
+							]
 			},
 			views: {
 				'globalHeader@': {
@@ -269,6 +266,13 @@
 				},
 				'layoutSingle@cart': {
 					templateUrl: baseUrl + '/templates/blocks/main-cart-table.html'
+				}
+			}
+		}).state('cart.groupBy', {
+			url: '/groupBy/{groupKey}',
+			views: {
+				'layoutSingle@cart': {
+					templateUrl: baseUrl + '/templates/blocks/location-cart-table.html'
 				}
 			}
 		}).state('configure', {
@@ -472,35 +476,7 @@
 					templateUrl: baseUrl + '/templates/blocks/assets-swap-confirm-view.html'
 				}
 			}
-		}).state('location-cart', {
-	        url: '/location-cart',
-	        params: {
-	          view: 'detail'
-	        },
-	        views: {
-	          'globalHeader@': {
-	            templateUrl: baseUrl + '/templates/blocks/header-global.html'
-	          },
-	          'processTrail@': {
-	            templateUrl: baseUrl + '/templates/blocks/display-actions-top.html'
-	          },
-	           'proposalSelector@location-cart': {
-	            templateUrl: baseUrl + '/templates/blocks/block-proposal-summary.html'
-	          },
-	          'systemNotification@': {
-	            templateUrl: baseUrl + '/templates/blocks/system-notification.html'
-	          },
-	          'displayActions@': {
-	            templateUrl: baseUrl + '/templates/blocks/display-actions.html'
-	          },
-	          'layout@': {
-	            templateUrl: baseUrl + '/templates/layouts/layout-single-col.html'
-	          },
-	          'layoutSingle@location-cart': {
-	            templateUrl: baseUrl + '/templates/blocks/location-cart-table.html'
-	          }
-        	}
-      	});
+		});
 	}
 
 	angular.module('aptCPQUI').run( function($rootScope) {

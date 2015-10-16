@@ -1,6 +1,12 @@
 <!-- fieldType: PICKLIST -->
-<ui-select ng-model="dynamicField.selected" theme="select2" ng-disabled="dynamicField.IsDisabled || !dynamicField.IsEditable" append-to-body="true" style="width:100%">
-    <ui-select-match placeholder="--{{dynamicField.labels.None}}--" allow-clear="true">{{$select.selected.label}}</ui-select-match>
+<ui-select ng-model="dynamicField.selected"
+					 theme="select2"
+					 ng-disabled="dynamicField.IsDisabled || !dynamicField.IsEditable"
+					 append-to-body="true"
+					 class="field--picklist">
+    <ui-select-match placeholder="--{{dynamicField.labels.None}}--" allow-clear="true">
+			{{$select.selected.label}}
+		</ui-select-match>
     <ui-select-choices repeat="entry.value as entry in dynamicField.entries | filter : $select.search">
       <div ng-bind-html="trustAsHtml((entry.label | highlight: $select.search))"></div>
     </ui-select-choices>

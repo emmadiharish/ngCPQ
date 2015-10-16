@@ -159,7 +159,7 @@
 
 				        chargeLine = allChargeLines[appliedInfo.targetPrimaryLineNumber];
 				        var targetSO =  getObjectFromField(chargeLine.lineItemSO(), appliedInfo.updateField);			        
-				        var sourceExpressionInfos = infosBySourceId[targetSO.Id];			        
+				        var sourceExpressionInfos = infosBySourceId[targetSO.Id];
 			        	if(angular.isDefined(sourceExpressionInfos) &&
 			          			sourceExpressionInfos !== null) {
 			        		for(sourceInfoId in sourceExpressionInfos) {

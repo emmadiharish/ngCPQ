@@ -9,7 +9,7 @@
 		ng-click="nav.changeView('options')">{{nav.labels.ProductOptionsTab}}</li>
 	
 	<li ng-if="nav.showTabView()"
-		ng-repeat="optionGroup in nav.getTopOptionGroups()"
+		ng-repeat="optionGroup in nav.topOptionGroups"
 		ng-class="{'main-configure-product__product-nav--active': optionGroup.isActive}"
 		ng-click="nav.showGroup(optionGroup)">{{optionGroup.label}}</li>
 </ul>

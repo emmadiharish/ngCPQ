@@ -30,7 +30,7 @@
 	}
 
 	function AttributeGroupCtrl(_, systemConstants) {
-		var ctrl = this;		
+		var ctrl = this;
 		var nsPrefix = systemConstants.nsPrefix;
 
 	    /**
@@ -58,11 +58,7 @@
 		 * @param attributeName the name of the attribute to check
 		 * @return the attribute display properties used by dynamic field directive
 		 */
-		ctrl.attributeDisplayInfo = function(attribute) {
-			if(!angular.isDefined(attribute)) {
-				return {};
-
-			}			
+		ctrl.attributeDisplayInfo = function(attribute) {					
 			return ctrl.lineItem.getAttributeDisplayInfo(attribute.Id);
 		}
 

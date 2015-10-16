@@ -29,6 +29,7 @@
 		searchCtrl.excludedProductIds = CategoryService.excludedProductIds; //Category Browse and Search Merge Change, Not found its usage, copied from categoryProductCtrl.js
 
 		searchCtrl.selectedProductsCount = 0; //Category Browse and Search Merge Change, Added, it's fix for showing selected product count
+		searchCtrl.selectedSoldProductsCount = 0; //  count for selected solded product
 		searchCtrl.itemsPerPage = systemConstants.customSettings.catalogPageSettings.CatalogProductsPerPage;
 		searchCtrl.currentPage = 1;
 		searchCtrl.productsInCurrentPage = [];
@@ -154,6 +155,10 @@
 
 			searchCtrl.selectedProductsCount = _.reduce(searchCtrl.getProductsList(), function (memo, product) {
 				return memo + (product.select ? 1 : 0);
+			}, 0);
+
+			searchCtrl.selectedSoldProductsCount = _.reduce(searchCtrl.getProductsList(), function (memo, product) {
+				return memo + (product.productSO[searchCtrl.nsPrefix + 'ConfigurationType__c'] == "Option" && product.select ? 1 : 0);
 			}, 0);
 
 			return (needsMet !== 0 && needsMet === (searchCtrl.productsInCurrentPage.length - searchCtrl.excludedProductIds.length));

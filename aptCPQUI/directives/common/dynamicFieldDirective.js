@@ -65,11 +65,14 @@
 		return directive;
 	}
 
+	var initializedProps = false;
 	function dynamicFieldCtrl($scope, $log, $filter, systemConstants, UtilService, ConfigurationDataService, i18nService) {
 		var vm = this;
 		var nsPrefix = systemConstants.nsPrefix;
 		vm.labels = i18nService.CustomLabel;
-		vm.getIsStringType = getIsStringType;
+		vm.getIsReadOnlyPlainText = getIsReadOnlyPlainText;
+		vm.getIsReadOnlyFormula = getIsReadOnlyFormula;
+
 		
 		init();
 
@@ -97,23 +100,26 @@
 			vm.displayType =  vm.displayType ? String(vm.displayType).toLowerCase() : 'text';
 
 			//Get the custom settings and init using them
-			ConfigurationDataService.getCustomSettings().then(function (settings) {
-				vm.systemProperties = settings.systemProperties;
-				vm.templateUrl = systemConstants.baseUrl + '/templates/directives/fields/field-dynamic.html';				
-				//setup overridable properties
-				initProperty('FieldType');
-				initProperty('DisplayType');
+			vm.systemProperties = systemConstants.customSettings.systemProperties;
+			vm.templateUrl = systemConstants.baseUrl + '/templates/directives/fields/field-dynamic.html';
+
+			//setup overridable properties
+			if(!initializedProps) {
+				initProperty('FieldType', false, 'string');
+				initProperty('DisplayType', false, 'text');
 				initProperty('IsCalculated', true, false);
 				initProperty('IsDisabled', true, false);
+				initProperty('IsVisible', true, true);
 				initProperty('IsEditable', true, true);			
 				initProperty('TrueValue', false, 'true');
 				initProperty('FalseValue', false, 'false');
-								
-				//setup getter/setters, templates, etc.
-				initByFieldType(vm.fieldType);			
-				//setup special watches for picklist type changes
-				initpicklistWatch();		
-			});
+				initializedProps = true;
+			}
+							
+			//setup getter/setters, templates, etc.
+			initByFieldType(vm.fieldType);			
+			//setup special watches for picklist type changes
+			initpicklistWatch();			
 		}
 
 		/**
@@ -174,11 +180,15 @@
 					},
 					"picklist": function () {
 						vm.templateUrl = systemConstants.baseUrl + '/templates/directives/fields/field-picklist.html';					
-						intitPickListType();					
+						initPickListType();					
 					},
 					"multipicklist": function () {
 						vm.templateUrl = systemConstants.baseUrl + '/templates/directives/fields/field-multi-picklist.html';					
-						intitPickListType();
+						initPickListType();
+					},
+					"reference": function () {
+						vm.templateUrl = systemConstants.baseUrl + '/templates/directives/fields/field-picklist.html';
+						initReferenceType();
 					}
 			}
 
@@ -206,10 +216,10 @@
 			var camelCase = propertyName[0].toLowerCase() + propertyName.substring(1);			
 			var getter = function() {
 				var result;
-				if(angular.isDefined(vm[camelCase])) {
-					result = vm[camelCase];
+				if(angular.isDefined(this[camelCase])) {
+					result = this[camelCase];
 				} else {
-					result = vm.properties[propertyName];
+					result = this.properties[propertyName];
 				}
 
 				if(angular.isUndefined(result)) {
@@ -228,14 +238,14 @@
 			};
 
 			//setup the property
-			Object.defineProperty(vm, propertyName, { get: getter, set: setter });
+			Object.defineProperty(dynamicFieldCtrl.prototype, propertyName, { get: getter, set: setter });
 		}
 
 		/**
 		 * Initialize the set/get functions, picklist entries and 
 		 * "selected" model object
 		 */
-		function intitPickListType() {
+		function initPickListType() {
 			vm.getSetModel = getSetPickList;
 			//setup selectable values
 			if (!angular.isArray(vm.properties.pickListEntries)) {
@@ -252,7 +262,29 @@
 			}
 
 			//set "selected" object
-			var modelVal = getSetPickList(); 
+			modelVal = getSetPickList(); 
+			vm.selected = !vm.IsEditable ? modelVal : modelVal.selected;
+		}
+
+		/**
+		 * initialize lookup list type 
+		 */
+		function initReferenceType() {
+			vm.getSetModel = getSetReference;
+			// setup selectable values
+			if (!angular.isArray(vm.properties.pickListEntries)) {
+				return;
+			}
+			vm.entries = vm.properties.pickListEntries;
+
+			//set default value for model
+			var modelVal = getModel();
+			if (!angular.isDefined(modelVal) || modelVal == null) {						
+				getSetReference(getPickListDefault());
+			}
+
+			//set "selected" object
+			modelVal = getSetReference(); 
 			vm.selected = !vm.IsEditable ? modelVal : modelVal.selected;
 		}
 
@@ -287,7 +319,19 @@
 						function() { return vm.selected; },
 						function(newValue, oldValue) {
 							if(newValue != oldValue) {
-								getSetPickList(angular.isDefined(newValue) ? newValue : null);
+								var modelVal = getSetPickList(angular.isDefined(newValue) ? newValue : null);
+								if(modelVal && modelVal.selected) {
+									if(angular.isUndefined(vm.selected)) {
+										vm.selected = modelVal.selected;
+									} else if(angular.isArray(vm.selected))  {
+										vm.selected.length = 0;
+										angular.extend(vm.selected, modelVal.selected);
+									} else {
+										vm.selected = modelVal.selected;
+									}
+								} else {
+									vm.selected = undefined;
+								}
 							}
 						}
 				);					
@@ -371,6 +415,42 @@
 					}
 				}
 			}
+		}
+
+		/**
+		 * Check if this control should be displayed as read only text
+		 * @return true if control should be displayed as read only text,
+		 *		    false otherwise
+		 */
+		function getIsReadOnlyPlainText() {
+			return !vm.IsEditable && 
+				   !getIsBooleanType() && 
+				   !getIsStringTypeFormula();
+		}
+
+		/** Check if this control is a calculated read only value
+		 * @return true if this is a caluclated formula, false otherwise
+		 */
+		function getIsReadOnlyFormula() {			
+			return !vm.IsEditable && getIsStringTypeFormula();
+		}
+
+		/**
+		 * Check if this control is a string type
+		 * @return true if this is either a string type false otherwise
+		 */
+		function getIsBooleanType() {
+			return vm.FieldType.toLowerCase() == 'boolean';
+
+		}
+
+		/**
+		 * Check if this control is a string type formula
+		 * @return true if this is a string type formula, false otherwise
+		 */
+		function getIsStringTypeFormula() {
+			return vm.IsCalculated && getIsStringType();
+
 		}
 
 		/**
@@ -629,6 +709,37 @@
 		}
 
 		/**
+		 * Get/Set model for pickList derived for reference type objects
+		 * @param newValue the new value to be set, undefined will be ignored
+		 * @return the current model value
+		 */
+		function getSetReference(newValue) {
+			var modelVal = null;
+			if(!vm.IsEditable) {
+				modelVal = getModel();
+				console.log(modelVal);
+				var entry;
+				for (entry in vm.entries) {
+					if(vm.entries[entry].hasOwnProperty('value') && 
+						modelVal == vm.entries[entry].value) {
+						return (vm.entries[entry].hasOwnProperty('label') ? vm.entries[entry].label : "");
+					}
+				}
+				return modelVal;
+			}
+
+			if(angular.isDefined(newValue)) {
+				modelVal = newValue;
+				setModel(modelVal, false); // 'false': not multiPicklist  
+			}
+
+			modelVal = getModel();
+			var displayModel = {};
+			displayModel.selected = modelVal;
+			return displayModel;
+		}
+
+		/**
 		 * Get/Set model as a picklist or multi-picklist
 		 * @param newValue the new value, undefined will be ignored
 		 * @return the current model value
@@ -636,7 +747,6 @@
 		function getSetPickList(newValue) {
 			if(!vm.IsEditable) { //if cannot edit return model value
 				return getModel();
-
 			}
 
 			var modelVal = null;

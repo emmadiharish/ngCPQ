@@ -52,14 +52,25 @@
 					case "REFERENCE":
 						if (filterInstance.FieldName === (ctrlRef.nsPrefix + "AccountId__c") || filterInstance.FieldName === (ctrlRef.nsPrefix + "LocationId__c")) {
 							filterInstance.viewCollapse = true;
-
-							// add a 'selected' model attribute to each of the picklist items
-							filterInstance.referenceObjects.forEach(function (picklistItem) {
-								picklistItem.selected = false;
-								picklistItem.FieldName = filterInstance.FieldName;
-							});
-							if (filterInstance.referenceObjects.length > 0) {
-								iFilterList.push(filterInstance);
+							filterInstance.referenceObjects = [];
+							// fetch picklist choices from backend if necessary 
+							if (filterInstance.hasOwnProperty('SObjectName')) {
+								AssetService.getReferenceObjects(filterInstance.SObjectName).then(function(result){
+									if (angular.isDefined(result) && result != null) {
+										result.forEach(function(element){
+											filterInstance.referenceObjects.push({
+												'selected': false,
+												'FieldName': filterInstance.FieldName,
+												'Name': element.Name,
+												'Id': element.Id
+											});	
+										});
+									}
+									// add to filter display list
+									if (filterInstance.referenceObjects.length > 0) {
+										iFilterList.push(filterInstance);
+									}
+								});
 							}
 						} else {
 							$log.info("Unsupported Filter: " + filterInstance.FieldName);

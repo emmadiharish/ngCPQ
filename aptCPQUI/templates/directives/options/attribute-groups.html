@@ -1,4 +1,7 @@
 <div ng-repeat="attrGroup in lineItem.attrGroups" 
 		 class="main-configure-product__product-attribute">
+	<h3 toggle-class="is--open" class="attribute-group__title">
+		<span><i class="is--expandable"></i> {{attrGroup.Name}}</span>
+	</h3>
 	<attribute-group line-item="lineItem" attribute-group="attrGroup"/>
 </div>

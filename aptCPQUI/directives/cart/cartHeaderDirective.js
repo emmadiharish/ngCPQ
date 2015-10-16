@@ -36,10 +36,15 @@
 		headerCtrl.currentPage = 1;
 		headerCtrl.productsInCurrentPage = [];
 		headerCtrl.contextProductIds = [];
+		headerCtrl.totalPage = 1;
+		headerCtrl.selectedItemsIndex = [];
+		headerCtrl.usedItemsIndex = [];
+		headerCtrl.moveToIndex = 0;
 
 		function init() {
 			CartService.getCartLineItems().then(function (lineItems) {
 				headerCtrl.lineItems = lineItems;
+				headerCtrl.totalPage = Math.ceil(headerCtrl.lineItems.length/headerCtrl.itemsPerPage);
 			});
 			CartService.getCheckboxModels().then(function (models) {
 				headerCtrl.checkModels = models.all;
@@ -100,13 +105,72 @@
 			CartService.addCopyToCart(selectedItems);
 		}
 
+		headerCtrl.getTimes = function(n) {
+		     return new Array(n);
+		}
+
+		headerCtrl.moveCheckedItems = function(pageNumber){
+			var selectedItems = buildSelection();
+			headerCtrl.usedItemsIndex = [];
+
+			// calculate destination index based on items per page and selected page number
+			headerCtrl.moveToIndex = pageNumber * headerCtrl.itemsPerPage;
+
+			// Rearrange line items array without selected items
+			_.each(headerCtrl.lineItems, function(lineItem, key) {
+				var ele = findNextElement(key);
+				if(!isNaN(ele))
+			    {
+			    	headerCtrl.lineItems[key] = headerCtrl.lineItems[ele];
+			    }
+			});
+
+			// move selected item to specified page
+			moveSelectedItems(selectedItems);
+
+			// To update Indexes
+			CartService.resequenceLineItems();
+			CartService.updateCartLineItems();
+
+		}
+
+		// Find next element which take place of selected element
+		function findNextElement(index){
+		  	for(var j = index;j < headerCtrl.lineItems.length; j++)
+		    {
+		        if(!_.contains(headerCtrl.selectedItemsIndex, j) && !_.contains(headerCtrl.usedItemsIndex, j))
+		        {
+		            headerCtrl.usedItemsIndex.push(j);
+		            return j;
+		        }
+		    }
+		}
+
+		function moveSelectedItems(selectedItem){
+			var calculatedLineItems = headerCtrl.moveToIndex + selectedItem.length;
+			var totalLineItems = headerCtrl.lineItems.length;
+			if(calculatedLineItems > totalLineItems)
+			{
+				headerCtrl.moveToIndex = headerCtrl.moveToIndex - (calculatedLineItems - totalLineItems);
+			}
+			for(var k=0; k < selectedItem.length; k++){
+			  headerCtrl.lineItems.splice(headerCtrl.moveToIndex, 0, selectedItem[k]);
+			  headerCtrl.moveToIndex++;
+			}  
+
+		}
+
 		function buildSelection() {
 			var selectedItems = [];
+			headerCtrl.selectedItemsIndex = [];
+			var selectedItemIndex = 0;
 			_.each(headerCtrl.lineItems, function (lineItem) {
 				if (headerCtrl.checkModels[lineItem.txnPrimaryLineNumber]) {
 					selectedItems.push(lineItem);
+					headerCtrl.selectedItemsIndex.push(selectedItemIndex);
 					headerCtrl.checkModels[lineItem.txnPrimaryLineNumber] = false;
 				}
+				selectedItemIndex++;
 			});
 			return selectedItems;
 		}

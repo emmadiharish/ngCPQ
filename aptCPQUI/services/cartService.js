@@ -21,51 +21,13 @@
 		var service = this;
 		nsPrefix = systemConstants.nsPrefix;
 
-		service.isRampDialogOpen = false;
+		service.isPricingFlyoutOpen = false;
+		service.selectedPricingGuidance = null;
 
-		service.ramp = {
-			"lineItem": null,
+		service.setPricingGuidance = function(pricingGuidance) {
+			service.selectedPricingGuidance = pricingGuidance;
+			service.isPricingFlyoutOpen = true;
 		};
-
-		service.setRampDetails = function(lineItem) {
-			service.ramp.lineItem = angular.copy(lineItem);
-			service.isRampDialogOpen = true;
-
-		};
-
-		service.addRampLine = function(rampLine) {
-			var currentRampIndex = service.ramp.lineItem.rampLines.indexOf(rampLine);
-			var clonedRampLine = LineItemSupport.newLineItemsFromClone(rampLine);
-
-			if(angular.isDefined(clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'])) {
-				var endDate = new Date(clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c']);
-				var newStartDate = endDate.setDate(endDate.getDate() + 1);
-				clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'] = newStartDate;
-			}
-
-			if(angular.isDefined(clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'])) {
-				if(clonedRampLine.lineItemSO[nsPrefix + 'PriceType__c'] === UtilService.priceTypesConstants.PRICETYPE_RECURRING) {
-					clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'] = UtilService.computeEndDate(clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c'], 
-																						 			clonedRampLine.lineItemSO[nsPrefix + 'SellingTerm__c'], 
-																						 			clonedRampLine.lineItemSO[nsPrefix + 'SellingFrequency__c']);	
-				} else {
-					var newEndDate = new Date(clonedRampLine.lineItemSO[nsPrefix + 'StartDate__c']);
-					clonedRampLine.lineItemSO[nsPrefix + 'EndDate__c'] = newEndDate.setDate(newEndDate.getDate() + 1);
-				}
-			} 
-
-			service.ramp.lineItem.rampLines.splice(currentRampIndex + 1, 0, clonedRampLine);
-
-		};
-
-		service.removeRampLine = function(rampLine) {
-			var rampLineIndex = service.ramp.lineItem.rampLines.indexOf(rampLine);
-			service.ramp.lineItem.rampLines.splice(rampLineIndex, 1);
-		};	
-
-		service.saveRamp = function() {
-			return CartDataService.updateBundle([service.ramp.lineItem]);
-		}
 
 		service.getCartHeader = function() {
 			return CartDataService.getCartHeader();
@@ -142,6 +104,10 @@
 					return _setNullFieldTypes(_cartColumnDetailAsFirstNode(cartColumns));
 				};
 			})(this));
+		};
+
+		service.getReferenceObjects = function(refObjKey) {
+			return CartDataService.getReferenceObjects(refObjKey); // returns promise
 		};
 
 		service.getRampColumns = function() {

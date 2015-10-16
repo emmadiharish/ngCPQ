@@ -6,10 +6,31 @@
 			<div class="main-configure-product__product-option-select"
 					 id="{{picklistCtrl.selected.componentId()}}">
 				<div class="select-override">
-					<select ng-change="picklistCtrl.selectOption(picklistCtrl.selected)" 
-									ng-model="picklistCtrl.selected"
-									ng-options="option.name() for option in picklistCtrl.group.options"
-									ng-disabled="!picklistCtrl.group.isModifiable()"></select>
+					<!-- ui-select directive -->
+					<ui-select ng-model="picklistCtrl.selected"
+										 ng-disabled="!picklistCtrl.group.isModifiable()"
+										 on-select="picklistCtrl.selectOption($item)"
+										 theme="select2"
+										 append-to-body="true"
+										 search-enabled="true"
+										 class="field--picklist">
+						<ui-select-match placeholder="--{{picklistCtrl.labels.None}}--"
+														 allow-clear="picklistCtrl.group.hasNoneOption()">
+							<div class="product-option__select-choice--name">
+								{{$select.selected.name()}}
+							</div>
+						</ui-select-match>
+						<ui-select-choices repeat="option in picklistCtrl.group.options | filter:picklistCtrl.isOptionDisplayed"
+															 ui-disable-choice="picklistCtrl.isOptionDisabled(option)"
+															 class="product-option__select-choice">
+							<div class="product-option__select-choice--name">
+								{{option.name()}}
+							</div>
+							<div class="product-option__select-choice--price">
+								{{option.price() | aptNumberToCurrency}}
+							</div>
+						</ui-select-choices>
+					</ui-select>
 				</div>
 			</div>
 			<div class="form-element-container">

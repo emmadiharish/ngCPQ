@@ -4,9 +4,103 @@
 	color:#444;
 }
 
+
+
+.pricing-guidance-flyout {
+    position: absolute;
+    top: 0;
+    background: #FFF;
+    border-radius: .4rem;
+    max-height: 25rem;
+    min-height: 10%;
+    left: 0;
+    min-width: 45rem;
+    width: 30%;
+    z-index: 40000;
+    box-shadow: 0 1px 10px 1px rgba(0, 0, 0, .60);
+    border: 3px solid #CCC;
+}
+
+.pricing-guidance-flyout .modal-header.arrow_box {
+	position: relative;
+}
+.pricing-guidance-flyout .modal-header.arrow_box:after, .pricing-guidance-flyout .modal-header.arrow_box:before {
+	bottom: 100%;
+	right: 2rem;
+	border: solid transparent;
+	content: " ";
+	height: 0;
+	width: 0;
+	position: absolute;
+	pointer-events: none;
+}
+
+.pricing-guidance-flyout .modal-header.arrow_box:after {
+	border-color: rgba(136, 183, 213, 0);
+	border-bottom-color: #CCC;
+	border-width: 10px;
+	margin-left: -26px;
+}
+.pricing-guidance-flyout .modal-header.arrow_box:before {
+	border-color: rgba(194, 225, 245, 0);
+	border-bottom-color: #CCC;
+	border-width: 20px;
+	margin-left: -23px;
+}
+
+.pricingGuidanceTable{
+	width: calc(100% - 6px);
+	margin: auto;
+}
+
+table.pricingGuidanceTable thead tr {
+    background-color: #D7E1EA;
+    height: 2rem;
+    border: 2px solid #D7E1EA;
+    width: 100%;
+    font-size: 0.875rem;
+    font-weight: bold;
+}
+
+table.pricingGuidanceTable td {
+    border-right: 1px solid #CCC;
+    border-bottom: 1px solid #CCC;
+    padding: 0.25rem;
+    text-align: center;
+}
+
+table.pricingGuidanceTable tr td:first-child {
+    border-left: 1px solid #CCC;
+    text-align: left;
+}
+
+.guidance-title{
+	padding: 10px 5px;
+	margin-bottom: 0;
+}
+
+.guidance-row-highlight-green {
+    border: 3px solid green;
+}
+
+.rating-container {
+    height: 3rem;
+    line-height: 3rem;
+}
+
+.rating-container .guidance-stop-light {
+    margin: 8px 5px;
+    float: left;
+}
+
+.dimension-info{
+	padding: 5px;
+	font-size: 1rem;
+}
+
 .guidance-stop-light {
-   height:30px; 
-   width: 30px; 
+   height:20px; 
+   width: 20px; 
    border-radius: 50%;
    margin: auto;
 }
@@ -26,3 +120,17 @@
 .guidance-none{
 	background-color: none;
 }
+
+.guidance-row-highlight-green{
+	border: 3px solid  green;
+}
+
+.guidance-row-highlight-red{
+	border: 3px solid  red;
+}
+
+.guidance-row-highlight-yellow{
+	border: 3px solid  yellow;
+}
+
+

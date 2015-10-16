@@ -6,7 +6,7 @@
 	angular.module('aptCPQUI').directive('optionGroups', OptionGroups);
 
 	OptionGroups.$inject = ['systemConstants'];
-
+	
 	function OptionGroups(systemConstants) {
 		return {
 			restrict: 'E',
@@ -53,12 +53,7 @@
 			return !showTabView && !groupsCtrl.lineItem.isTopLevel();
 
 		}
-
-		function showTabView() {
-			return showTabView;
-
-		}
-
+				
 		function getLevel() {
 			return parseInt(groupsCtrl.level);
 

@@ -11,10 +11,12 @@
         locationCart.view = $stateParams.view;
         locationCart.dateFormat = systemConstants.dateFormat;
         locationCart.labels = i18nService.CustomLabel;
-        locationCart.cartState;
+        // locationCart.cartState;
         locationCart.sortableSettings = {
             handle: '.line-item-row--draggable',
             group: 'lineItem',
+            scroll: true,
+            scrollSensitivity: 80,
             onEnd: function (endEvent) {
                 //Should show spinner until event finishes?
                 CartService.resequenceLineItems(endEvent.model, endEvent.oldIndex, endEvent.newIndex);
@@ -51,7 +53,7 @@
 
                     if (_.includes(column.FieldName, nsPrefix+'ProductId__r')) {
                         column.FieldType = 'DETAIL';
-                        locationCart.groupByColumnFields.push(column.Label);
+                        locationCart.groupByColumnFields.push(column);
                     
                     } else if (_.includes(column.FieldName, nsPrefix+'ChargeType')) {
                         column.FieldType = 'CHARGETYPE';
@@ -61,8 +63,11 @@
                         column.FieldType = 'QUANTITY';
                     
                     } else if(_.includes(column.FieldName, nsPrefix+'LocationId__r')) {
-                        locationCart.groupByColumnFields.push(column.Label);
-                        locationCart.cartState = column.Label;
+                        locationCart.groupByColumnFields.push(column);
+                        locationCart.cartState = column;
+                    
+                    } else if(_.includes(column.FieldName, nsPrefix+'Guidance__c')) {
+                        column.FieldType = 'GUIDANCE';
                     }
 
                     return column;
@@ -96,6 +101,12 @@
         locationCart.isServerActionInProgress = function() {
             return ActionHandlerService.isServerActionInProgress;
         };
+        locationCart.isDynamicField = function(fieldType) {
+            return angular.isUndefined(fieldType) || String(fieldType).toUpperCase() !== "GUIDANCE";
+        };
+        locationCart.isGuidanceField = function(fieldType) {
+            return angular.isDefined(fieldType) && String(fieldType).toUpperCase() === "GUIDANCE";
+        };
         locationCart.totalProductsForLocation = function(cartLocation) {
             if(angular.isDefined(locationCart.lineItemToLocationMap[cartLocation])) {
                 return locationCart.lineItemToLocationMap[cartLocation].length;
@@ -109,9 +120,11 @@
             }
         };
         locationCart.changeCartState = function() {
-            if(locationCart.cartState == 'Product') {
-                $state.go('cart');
-            } 
+        	if(_.includes(locationCart.cartState.FieldName, nsPrefix+'ProductId__r')) {
+        		$state.go('cart');
+        	} else {
+        		$state.go('cart.groupBy', {groupKey: locationCart.cartState.FieldName});
+        	}
         };
         locationCart.getStreetName = function(cartLocation) {
             return cartLocation[nsPrefix + 'Street__c'];

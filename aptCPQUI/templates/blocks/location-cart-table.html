@@ -1,391 +1,427 @@
 <div location-cart="location-cart" class="main-cart-wrapper main-cart-wrapper--overflow location-cart">
-    <div class="loading" ng-show="locationCart.isServerActionInProgress()"></div>
-    <location-cart-header check-boxes="locationCart.checkBoxes"></location-cart-header>
-    <div class="main-cart-container--positioning">
-        <div class="main-cart-container">
-            <table>
-                <!--Column heading-->
-                <thead class="cart-label-row">
-                    <th ng-repeat="column in locationCart.tableColumns"
-                        ng-class="{'is--editable' : column.IsEditable}"
-                        class="main-cart-col main-cart-col--header  main-cart-col--{{column.columnClassName}}">
-                        <div ng-if="column.FieldType !== 'DETAIL'">
-                            <label style="{{column.HeaderStyle}}">{{column.Label}}</label>
-                        </div>
-                        <!-- May be able to remove this second label -->
-                        <div cart-label-field="cart-label-field" class="fixed-label">
-                            <label>{{column.Label}}</label>
-                        </div>
-                        <div ng-if="column.FieldType == 'DETAIL'">
-                            <label style="{{column.HeaderStyle}}"> {{locationCart.labels.GroupBy}}
-                                <select name="locationGroupByFields" ng-model="locationCart.cartState" 
-                                                            ng-options="option for option in locationCart.groupByColumnFields"
-                                                            ng-change="locationCart.changeCartState()">
-                                </select>
-                            </label>
-                        </div>
-                    </th>
-                </thead>
+	<pricing-guidance-flyout></pricing-guidance-flyout>
+	<div class="loading" ng-show="locationCart.isServerActionInProgress()"></div>
+	<location-cart-header check-boxes="locationCart.checkBoxes"></location-cart-header>
+	<div class="main-cart-container--positioning">
+		<div class="main-cart-container">
+			<table>
+				<!--Column heading-->
+				<thead class="cart-label-row">
+					<th ng-repeat="column in locationCart.tableColumns"
+						ng-class="{'is--editable' : column.IsEditable}"
+						class="main-cart-col main-cart-col--header  main-cart-col--{{column.columnClassName}}">
+						<div ng-if="column.FieldType !== 'DETAIL'">
+							<label style="{{column.HeaderStyle}}">{{column.Label}}</label>
+						</div>
+						<!-- May be able to remove this second label -->
+						<div cart-label-field="cart-label-field" class="fixed-label">
+							<label>{{column.Label}}</label>
+						</div>
+						<div ng-if="column.FieldType == 'DETAIL'">
+							<label style="{{column.HeaderStyle}}"> {{locationCart.labels.GroupBy}}
+								<select name="locationGroupByFields" ng-model="locationCart.cartState"
+																	 ng-options="option.Label for option in locationCart.groupByColumnFields"
+																	 ng-change="locationCart.changeCartState()">
+								</select>
+							</label>
+						</div>
+					</th>
+				</thead>
 
-                <tbody ng-sortable="locationCart.sortableSettings">
+				<tbody ng-sortable="locationCart.sortableSettings">
 
-                    <!-- Line Item without Location -->
-                    <tr ng-repeat="lineItem in locationCart.lineItemsWithoutLocation" class="line-item-row">
-                    
-                        <td ng-repeat="column in locationCart.tableColumns"
-                            ng-class="{'is--editable' : column.IsEditable}"
-                            class="main-cart-col main-cart-col--{{column.columnClassName}}">
+					<!-- Line Item without Location -->
+					<tr ng-repeat="lineItem in locationCart.lineItemsWithoutLocation" class="line-item-row">
+					
+						<td ng-repeat="column in locationCart.tableColumns"
+							ng-class="{'is--editable' : column.IsEditable}"
+							class="main-cart-col main-cart-col--{{column.columnClassName}}">
 
-                            <!-- 1st Blank Row -->
-                            <div class="fieldtype-wrapper location-product"></div> 
+							<!-- 1st Blank Row -->
+							<div class="fieldtype-wrapper location-product"></div> 
 
-                            <div ng-if="column.FieldType === 'DETAIL'" class="simple-box">
+							<div ng-if="column.FieldType === 'DETAIL'" class="simple-box">
 
-                                <!-- content cell -->
-                                <div class="cart-cell" style="width: 100%; float:left;">
+								<!-- content cell -->
+								<div class="cart-cell" style="width: 100%; float:left;">
 
-                                <!-- use ng-repeat to replace multiple lines -->
-                           
-                                    <!-- expand row 1 -->
-                                    <div class="fieldtype-wrapper expand-product">
-                                        <!-- check box cell -->
-                                        <div class="cart-cell" style="width: 40px; padding-top:2px;" >
-                                            <div class="checkbox-override">
-                                                <input type="checkbox" 
-                                                       id="{{lineItem.txnPrimaryLineNumber}}" 
-                                                       ng-model="locationCart.checkBoxes.all[lineItem.txnPrimaryLineNumber]"
+								<!-- use ng-repeat to replace multiple lines -->
+						   
+									<!-- expand row 1 -->
+									<div class="fieldtype-wrapper expand-product">
 
-                                                       class="{{lineItem.txnPrimaryLineNumber}}">
-                                                <label for="{{lineItem.txnPrimaryLineNumber}}"></label>
-                                            </div>
-                                        </div>
+										<!-- check box cell -->
+										<div class="cart-cell" style="width: 40px; padding-top:2px;" >
+											<div class="checkbox-override">
+												<input type="checkbox" 
+													   id="{{lineItem.txnPrimaryLineNumber}}" 
+													   ng-model="locationCart.checkBoxes.all[lineItem.txnPrimaryLineNumber]"
 
-                                        <div class="cart-cell expand-lineItem">
-                                            <i ng-if="lineItem.hasOptions()"
-                                                 toggle-class="is--open" 
-                                                 parent="line-item-row"
-                                                 class="line-item--expandable">
-                                            </i>
-                                        </div>
-                                        <!-- 2 rows address cell -->
-                                        <div class="cart-cell">
-                                            <!-- main address row -->
-                                            
-                                            <div class="cart-cell location-line-item-name" style="padding-top: 4px;">{{lineItem.productName()}}</div>
-                                            <i ng-if="lineItem.hasAttrs() || lineItem.hasOptions()"
-                                               class="cart-cell line-item--configurable ss-icon ss-wrench" 
-                                               ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})">
-                                            </i>
-                                        </div>
-                                        <div class="cart-cell">
-                                            <i ng-if="lineItem.isConfigurationPending()"
-                                               ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" 
-                                               class="line-item--alert fa fa-exclamation">
-                                            </i>
-                                        </div>
+													   class="{{lineItem.txnPrimaryLineNumber}}">
+												<label for="{{lineItem.txnPrimaryLineNumber}}"></label>
+											</div>
+										</div>
 
-                                    </div>
-                                    <!-- row 2 -->
-                                    <div ng-repeat="chargeLine in lineItem.chargeLines" class="location-product-charge-type">
-                                        {{chargeLine.chargeType()}}
-                                    </div>
+										<div class="cart-cell expand-lineItem">
+											<i ng-if="lineItem.hasOptions()"
+												 toggle-class="is--open" 
+												 parent="line-item-row"
+												 class="line-item--expandable">
+											</i>
+										</div>
+										<!-- 2 rows address cell -->
+										<div class="cart-cell">
+											<!-- main address row -->
+											
+											<div class="cart-cell location-line-item-name" style="padding-top: 4px;">{{lineItem.productName()}}</div>
+											<i ng-if="lineItem.hasAttrs() || lineItem.hasOptions()"
+											   class="cart-cell line-item--configurable ss-icon ss-wrench" 
+											   ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})">
+											</i>
+										</div>
+										<div class="cart-cell">
+											<i ng-if="lineItem.isConfigurationPending()"
+											   ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" 
+											   class="line-item--alert fa fa-exclamation">
+											</i>
+										</div>
 
-                                    <div class="cart-cell" style="width: 100%; float:left;">
-                                        <div ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected" class="option-line">
-                                            <div class="fieldtype-wrapper expand-product location-option-line-name" style="padding-top: 4px;padding-left:6.1rem;">
-                                                    {{optionLine.productName()}}
-                                            </div>    
-                                            <div ng-repeat="chargeLine in optionLine.chargeLines">
+									</div>
+									<!-- row 2 -->
+									<div ng-repeat="chargeLine in lineItem.chargeLines" class="location-product-charge-type">
+										{{chargeLine.chargeType()}}
+									</div>
 
-                                                <div class="location-product-charge-type">
-                                                    {{chargeLine.chargeType()}}
-                                                </div>
-                                            </div>
-                                            <div ng-repeat="optionLine in optionLine.optionLines | filter:locationCart.isLineSelected">
-                                                <div class="fieldtype-wrapper expand-product" style="padding-left: 7rem;">
-                                                    {{optionLine.productName()}}
-                                                </div>
+									<div class="cart-cell" style="width: 100%; float:left;">
+										<div ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected" class="option-line">
+											<div class="fieldtype-wrapper expand-product location-option-line-name" style="padding-top: 4px;padding-left:6.1rem;">
+												<i toggle-class="is--open"
+													 parent="option-line-col"
+													 toggle-all-class="option-{{optionLine.txnPrimaryLineNumber}}"
+													 toggle-all-class-with="is--visible"
+													 ng-if="optionLine.hasOptions()"
+													 class="line-item--expandable">
+												</i>
+													{{optionLine.productName()}}
+											</div>    
+											<div ng-repeat="chargeLine in optionLine.chargeLines">
 
-                                                <div ng-repeat="chargeLine in optionLine.chargeLines">
+												<div class="location-product-charge-type">
+													{{chargeLine.chargeType()}}
+												</div>
+											</div>
+											<div ng-repeat="optionLine in optionLine.optionLines | filter:locationCart.isLineSelected">
+												<div class="fieldtype-wrapper expand-product" style="padding-left: 7rem;">
+													{{optionLine.productName()}}
+												</div>
 
-                                                    <div class="location-product-charge-type">
-                                                        {{chargeLine.chargeType()}}
-                                                    </div>
-                                                </div> 
-                                            </div>                            
-                                        </div>
-                                    </div>
+												<div ng-repeat="chargeLine in optionLine.chargeLines">
 
-                                </div>
-                            </div>
+													<div class="location-product-charge-type">
+														{{chargeLine.chargeType()}}
+													</div>
+												</div> 
+											</div>                            
+										</div>
+									</div>
 
-                            <ul ng-if="column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
-                                <li ng-repeat="chargeLine in lineItem.chargeLines" class="location-line-col">
-                                    <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
-                                        <dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
-                                                                     field-type="{{column.FieldType}}"
-                                                                     is-editable='false'
-                                                                     properties="column">
-                                        </dynamic-field>
-                                    </div>     
-                                </li>
-                            </ul>
+								</div>
+							</div>
 
-                            <ul ng-if="lineItem.optionLines.length && column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines stand-alone-line">
-                                <li ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected" class="location-line-col">
-                                    <div class="fieldtype-wrapper-subOption"></div> 
-                                    <!--Secondary Level option and charge lines-->
-                                    <ul ng-if="optionLine.chargeLines.length" >
-                                        <li ng-repeat="chargeLine in optionLine.chargeLines" >
-                                            <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
-                                                <dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
-                                                               field-type="{{column.FieldType}}"
-                                                               is-editable='false'
-                                                               properties="column">
-                                                </dynamic-field>
-                                            </div>
-                                        </li>
-                                    </ul>
+							<ul ng-if="column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
+								<li ng-repeat="chargeLine in lineItem.chargeLines" class="location-line-col">
+									<div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+										<dynamic-field ng-if="locationCart.isDynamicField(column.FieldType)"
+													   model="chargeLine.fieldGetterSetter(column.FieldName)" 
+													   field-type="{{column.FieldType}}"
+													   is-editable='false'
+													   properties="column">
+										</dynamic-field>
 
-                                    <ul ng-if="optionLine.optionLines">
-                                        <li ng-repeat="optionLine in optionLine.optionLines | filter:locationCart.isLineSelected" class="location-line-col">
-                                            <div class="fieldtype-wrapper-subOption"></div> 
-                                            <ul ng-if="optionLine.chargeLines.length" >
-                                                <li ng-repeat="chargeLine in optionLine.chargeLines" >
-                                                    <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
-                                                        <dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
-                                                                       field-type="{{column.FieldType}}"
-                                                                       is-editable='false'
-                                                                       properties="column">
-                                                        </dynamic-field>
-                                                    </div>
-                                                </li>
-                                            </ul>                                                
-                                        </li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </td>
-                        <!-- end of td -->
-                    </tr>
-                
-                    <!-- Line Item with Location -->
-                    <tr dir-paginate="cartLocation in locationCart.cartLocations | itemsPerPage: 10" class="line-item-row location-row">
-                        
-                        <td ng-repeat="column in locationCart.tableColumns"
-                            ng-class="{'is--editable' : column.IsEditable}"
-                            class="main-cart-col main-cart-col--{{column.columnClassName}}">
+										<pricing-guidance ng-if="locationCart.isGuidanceField(column.FieldType)" 
+														  charge-line="chargeLine"
+														  properties="column">
+										</pricing-guidance>
+									</div>     
+								</li>
+							</ul>
 
-                            <!-- 1st Blank Row -->
-                            <div class="fieldtype-wrapper expand-bottom" ng-hide="$first"></div>
+							<ul ng-if="lineItem.optionLines.length && column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines stand-alone-line">
+								<li ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected" class="location-line-col">
+									<div class="fieldtype-wrapper-subOption"></div> 
+									<!--Secondary Level option and charge lines-->
+									<ul ng-if="optionLine.chargeLines.length" >
+										<li ng-repeat="chargeLine in optionLine.chargeLines" >
+											<div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+												<dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
+															   field-type="{{column.FieldType}}"
+															   is-editable='false'
+															   properties="column">
+												</dynamic-field>
+											</div>
+										</li>
+									</ul>
 
-                            <!-- 2nd Blank row for Number of Products -->
-                            <div class="fieldtype-wrapper expand-bottom" style="height: 5rem" ng-hide="$first"></div>
+									<ul ng-if="optionLine.optionLines">
+										<li ng-repeat="optionLine in optionLine.optionLines | filter:locationCart.isLineSelected" class="location-line-col">
+											<div class="fieldtype-wrapper-subOption"></div> 
+											<ul ng-if="optionLine.chargeLines.length" >
+												<li ng-repeat="chargeLine in optionLine.chargeLines" >
+													<div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+														<dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
+																	   field-type="{{column.FieldType}}"
+																	   is-editable='false'
+																	   properties="column">
+														</dynamic-field>
+													</div>
+												</li>
+											</ul>                                                
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</td>
+						<!-- end of td -->
+					</tr>
+				
+					<!-- Line Item with Location -->
+					<tr dir-paginate="cartLocation in locationCart.cartLocations | itemsPerPage: 10" class="line-item-row location-row">
+						
+						<td ng-repeat="column in locationCart.tableColumns"
+							ng-class="{'is--editable' : column.IsEditable}"
+							class="main-cart-col main-cart-col--{{column.columnClassName}}">
 
-                            <!-- Location related row list -->
-                            <div class="location-option">
+							<!-- 1st Blank Row -->
+							<div class="fieldtype-wrapper expand-bottom" ng-hide="$first"></div>
 
-                                <div ng-if="column.FieldType === 'DETAIL'" class="simple-box">
+							<!-- 2nd Blank row for Number of Products -->
+							<div class="fieldtype-wrapper expand-bottom" style="height: 5rem" ng-hide="$first"></div>
 
-                                    <!-- non expanding row -->
-                                    <div ng-class="$odd? 'odd-row': 'even-row'">
+							<!-- Location related row list -->
+							<div class="location-option">
 
-                                        <!-- 3 rows info cell -->
-                                        <div class="cart-cell content-font" style="border-right: 1px solid #E3E3E3; display: block">
+								<div ng-if="column.FieldType === 'DETAIL'" class="simple-box">
 
-                                            <!-- row 1 -->
-                                            <div class="fieldtype-wrapper expand-bottom location-name" style="height: 3.5rem">
-                                                <!-- check box cell -->
-                                                <div class="cart-cell" style="width: 40px;" >
-                                                    
-                                                </div>
+									<!-- non expanding row -->
+									<div ng-class="$odd? 'odd-row': 'even-row'">
 
-                                                <!-- 2 rows address cell -->
-                                                <div class="cart-cell">
-                                                    <!-- main address row -->
-                                                    <div class="cart-cell" style="padding-top: 5px; ">{{cartLocation.Name}}</div>
+										<!-- 3 rows info cell -->
+										<div class="cart-cell content-font" style="border-right: 1px solid #E3E3E3; display: block">
 
-                                                    <!-- row 2 -->
-                                                    <!-- detail address row -->
-                                                    <div>
-                                                        <!-- location icon -->
-                                                        <div class="cart-cell" style="height: 20px;">
-                                                            <div class="cart-cell ss-icon ss-location"></div>
-                                                        </div>
+											<!-- row 1 -->
+											<div class="fieldtype-wrapper expand-bottom location-name" style="height: 3.5rem">
+												<!-- check box cell -->
+												<div class="cart-cell" style="width: 40px;" >
+													
+												</div>
 
-                                                        <!-- detail address -->
-                                                        <div class="cart-cell">{{locationCart.getStreetName(cartLocation)}} </div>
-                                                   
-                                                    </div>
+												<!-- 2 rows address cell -->
+												<div class="cart-cell">
+													<!-- main address row -->
+													<div class="cart-cell" style="padding-top: 5px; ">{{cartLocation.Name}}</div>
 
-                                                    <div class="cart-cell" ng-show="locationCart.isNotUsedInQuote(cartLocation.Id)" style="padding-top: 5px; color: #FF6600;"> {{locationCart.labels.NotUsedInQuote}} </div>
+													<!-- row 2 -->
+													<!-- detail address row -->
+													<div>
+														<!-- location icon -->
+														<div class="cart-cell" style="height: 20px;">
+															<div class="cart-cell ss-icon ss-location"></div>
+														</div>
 
-                                                </div>
+														<!-- detail address -->
+														<div class="cart-cell">{{locationCart.getStreetName(cartLocation)}} </div>
+												   
+													</div>
 
-                                            </div>
+													<div class="cart-cell" ng-show="locationCart.isNotUsedInQuote(cartLocation.Id)" style="padding-top: 5px; color: #FF6600;"> {{locationCart.labels.NotUsedInQuote}} </div>
 
-                                            <!-- row 2 -->
-                                            <!-- pop up row -->
-                                            <div class="location-title">
-                                              
-                                                <i toggle-class="is--open"
-                                                    parent="location-row"
-                                                    class="line-item--expandable"
-                                                    style="margin-top: 0.8rem">
-                                                </i>
+												</div>
 
-                                                <!-- title display -->
-                                                <div class="cart-cell" style="margin-top: 0.8rem">
-                                                    <a>{{locationCart.totalProductsForLocation(cartLocation.Id)}} {{locationCart.labels.Products}}</a>
-                                                </div>
+											</div>
 
-                                            </div>
+											<!-- row 2 -->
+											<!-- pop up row -->
+											<div class="location-title">
+											  
+												<i toggle-class="is--open"
+													parent="location-row"
+													class="line-item--expandable"
+													style="margin-top: 0.8rem">
+												</i>
 
-                                        </div>
+												<!-- title display -->
+												<div class="cart-cell" style="margin-top: 0.8rem">
+													<a>{{locationCart.totalProductsForLocation(cartLocation.Id)}} {{locationCart.labels.Products}}</a>
+												</div>
 
-                                    </div>
+											</div>
 
-                                    <!-- expanding row -->
-                                    <div class="expand-font location-option">
-                                        <!-- line number cell -->
+										</div>
 
-                                        <!-- content cell -->
-                                        <div class="cart-cell">
+									</div>
 
-                                            <!-- use ng-repeat to replace multiple lines -->
-                                            <ul>
-                                                <!-- <li ng-repeat="lineItem in locationCartCtrl.results.lineItems"> -->
-                                                <li ng-repeat="lineItem in locationCart.lineItemsForCartLocation(cartLocation.Id)">
-                                                    <!-- expand row 1 -->
-                                                    <div class="location-cart-line-item">
+									<!-- expanding row -->
+									<div class="expand-font location-option">
+										<!-- line number cell -->
 
-                                                        <!-- check box cell -->
-                                                        <div class="cart-cell location-cart-checkbox">
-                                                            <div class="checkbox-override">
-                                                                <input type="checkbox" 
-                                                                       id="{{lineItem.txnPrimaryLineNumber}}" 
-                                                                       ng-model="locationCart.checkBoxes.all[lineItem.txnPrimaryLineNumber]"
-                                                                       class="{{lineItem.txnPrimaryLineNumber}}">
-                                                                <label for="{{lineItem.txnPrimaryLineNumber}}"></label>
-                                                            </div>
-                                                        </div>
+										<!-- content cell -->
+										<div class="cart-cell">
 
-                                                        <!-- 2 rows address cell -->
-                                                        <div class="cart-cell">
-                                                            <div class="cart-cell location-line-item-name">{{lineItem.productName()}}</div>
-                                                            <i ng-if="lineItem.hasAttrs() || lineItem.hasOptions()"
-                                                               class="cart-cell line-item--configurable ss-icon ss-wrench" 
-                                                               style="padding-top: 15px;"
-                                                               ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})">
-                                                            </i>
-                                                        </div>
-                                                        <div class="cart-cell">
-                                                            <i ng-if="lineItem.isConfigurationPending()"
-                                                               ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" 
-                                                               class="line-item--alert fa fa-exclamation">
-                                                            </i>
-                                                        </div>
+											<!-- use ng-repeat to replace multiple lines -->
+											<ul>
+												<!-- <li ng-repeat="lineItem in locationCartCtrl.results.lineItems"> -->
+												<li ng-repeat="lineItem in locationCart.lineItemsForCartLocation(cartLocation.Id)">
+													<!-- expand row 1 -->
+													<div class="location-cart-line-item">
+														
+														<!-- check box cell -->
+														<div class="cart-cell location-cart-checkbox">
+															<div class="checkbox-override">
+																<input type="checkbox" 
+																	   id="{{lineItem.txnPrimaryLineNumber}}" 
+																	   ng-model="locationCart.checkBoxes.all[lineItem.txnPrimaryLineNumber]"
+																	   class="{{lineItem.txnPrimaryLineNumber}}">
+																<label for="{{lineItem.txnPrimaryLineNumber}}"></label>
+															</div>
+														</div>
 
-                                                    </div>
+														<!-- 2 rows address cell -->
+														<div class="cart-cell location-line-item-name">
+															<i ng-if="lineItem.hasOptions()"
+																toggle-class="is--open" 
+																parent="line-item-row"
+																class="line-item--expandable">
+															</i>
+														</div>
+														<div class="cart-cell">
+															<div class="cart-cell location-line-item-name">{{lineItem.productName()}}</div>
+															<i ng-if="lineItem.hasAttrs() || lineItem.hasOptions()"
+															   class="cart-cell line-item--configurable ss-icon ss-wrench" 
+															   style="padding-top: 15px;"
+															   ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})">
+															</i>
+														</div>
+														<div class="cart-cell">
+															<i ng-if="lineItem.isConfigurationPending()"
+															   ui-sref="configure({txnPrimaryLineNumber: lineItem.txnPrimaryLineNumber})" 
+															   class="line-item--alert fa fa-exclamation">
+															</i>
+														</div>
 
-                                                    <!-- row 2 -->
-                                                    <div ng-repeat="chargeLine in lineItem.chargeLines" class="location-product-charge-type">
-                                                        {{chargeLine.chargeType()}}
-                                                    </div>
+													</div>
 
-                                                    <div class="cart-cell">
-                                                        <div ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected">
-                                                            <div class="fieldtype-wrapper expand-product location-option-line-name" style="padding-top: 4px; padding-left:6.1rem;">
-                                                                    {{optionLine.productName()}}
-                                                            </div>    
-                                                            <div ng-repeat="chargeLine in optionLine.chargeLines">
+													<!-- row 2 -->
+													<div ng-repeat="chargeLine in lineItem.chargeLines" class="location-product-charge-type">
+														{{chargeLine.chargeType()}}
+													</div>
 
-                                                                <div class="location-product-charge-type">
-                                                                    {{chargeLine.chargeType()}}
-                                                                </div>
-                                                            </div>
-                                                            <div ng-repeat="optionLine in optionLine.optionLines | filter:locationCart.isLineSelected">
-                                                                <div class="fieldtype-wrapper expand-product" style="padding-left: 7rem;">
-                                                                    {{optionLine.productName()}}
-                                                                </div>
+													<div>
+														<div ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected">
 
-                                                                <div ng-repeat="chargeLine in optionLine.chargeLines">
+															<div class="fieldtype-wrapper expand-product location-option-line-name" style="padding-top: 4px; padding-left:6.1rem;">
+																<i toggle-class="is--open"
+																   parent="option-line-col"
+																   toggle-all-class="option-{{optionLine.txnPrimaryLineNumber}}"
+																   toggle-all-class-with="is--visible"
+																   ng-if="optionLine.hasOptions()"
+																   class="line-item--expandable">
+																</i>
+																{{optionLine.productName()}}
+															</div>    
+															<div ng-repeat="chargeLine in optionLine.chargeLines">
 
-                                                                    <div class="location-product-charge-type">
-                                                                        {{chargeLine.chargeType()}}
-                                                                    </div>
-                                                                </div> 
-                                                            </div>                            
-                                                        </div>
-                                                    </div>
+																<div class="location-product-charge-type">
+																	{{chargeLine.chargeType()}}
+																</div>
+															</div>
+															<div ng-repeat="subOptionLine in optionLine.optionLines | filter:locationCart.isLineSelected">
+																<div class="fieldtype-wrapper expand-product" style="padding-left: 7rem;">
+																	{{optionLine.productName()}}
+																</div>
 
-                                                </li>
-                                            </ul>
+																<div ng-repeat="chargeLine in subOptionLine.chargeLines">
 
-                                        </div>
+																	<div class="location-product-charge-type">
+																		{{chargeLine.chargeType()}}
+																	</div>
+																</div> 
+															</div>                            
+														</div>
+													</div>
 
-                                    </div>
+												</li>
+											</ul>
 
-                                </div>
-                            </div>
+										</div>
 
-                            <div ng-repeat="lineItem in locationCart.lineItemsForCartLocation(cartLocation.Id)" class="location-option expandable-location" >
-                                
-                                <ul ng-if="column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
-                                    <li ng-repeat="chargeLine in lineItem.chargeLines" class="location-line-col location-option">
-                                        <div style="height:2.5rem;border-bottom:1px solid #E3E3E3" ng-show="$first"></div>
-                                            <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
-                                                <dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
-                                                                             field-type="{{column.FieldType}}"
-                                                                             is-editable='false'
-                                                                             properties="column">
-                                                </dynamic-field>
-                                            </div>
-                                    </li>
-                                </ul>
-                               
-                                <ul ng-if="lineItem.optionLines.length && column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
-                                    <li ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected" class="location-line-col location-option">
-                                    <div class="fieldtype-wrapper-subOption"></div> 
-                                       
-                                        <ul ng-if="optionLine.chargeLines.length" >
-                                            <li ng-repeat="chargeLine in optionLine.chargeLines" >
-                                                <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
-                                                    <dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
-                                                                   field-type="{{column.FieldType}}"
-                                                                   is-editable='false'
-                                                                   properties="column">
-                                                    </dynamic-field>
-                                                </div>
-                                            </li>
-                                        </ul>
+									</div>
 
-                                         <ul ng-if="optionLine.optionLines">
-                                            <li ng-repeat="optionLine in optionLine.optionLines | filter:locationCart.isLineSelected" class="location-line-col location-option">
-                                                <div class="fieldtype-wrapper-subOption"></div> 
-                                                <ul ng-if="optionLine.chargeLines.length" >
-                                                    <li ng-repeat="chargeLine in optionLine.chargeLines" >
-                                                        <div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
-                                                            <dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
-                                                                           field-type="{{column.FieldType}}"
-                                                                           is-editable='false'
-                                                                           properties="column">
-                                                            </dynamic-field>
-                                                        </div>
-                                                    </li>
-                                                </ul>                                                
-                                            </li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                               
-                            </div> 
-                        </td>
-                    </tr>
+								</div>
+							</div>
+
+							<div ng-repeat="lineItem in locationCart.lineItemsForCartLocation(cartLocation.Id)" class="location-option expandable-location" >
+								
+								<ul ng-if="column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
+									<li ng-repeat="chargeLine in lineItem.chargeLines" class="location-line-col location-option">
+										<div style="height:2.5rem;border-bottom:1px solid #E3E3E3" ng-show="$first"></div>
+											<div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+												<dynamic-field  ng-if="locationCart.isDynamicField(column.FieldType)"
+																model="chargeLine.fieldGetterSetter(column.FieldName)" 
+																field-type="{{column.FieldType}}"
+																is-editable='false'
+																properties="column">
+												</dynamic-field>
+
+												<pricing-guidance ng-if="locationCart.isGuidanceField(column.FieldType)" 
+																  charge-line="chargeLine"
+																  properties="column">
+												</pricing-guidance>
+											</div>
+									</li>
+								</ul>
+							   
+								<ul ng-if="lineItem.optionLines.length && column.FieldType !== 'DETAIL'" class="submenu submenu--chargelines chargelines">
+									<li ng-repeat="optionLine in lineItem.optionLines | filter:locationCart.isLineSelected" class="location-line-col location-option">
+									
+										<div class="fieldtype-wrapper-subOption"></div> 
+										<ul ng-if="optionLine.chargeLines.length" >
+											<li ng-repeat="chargeLine in optionLine.chargeLines" >
+												<div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+													<dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
+																   field-type="{{column.FieldType}}"
+																   is-editable='false'
+																   properties="column">
+													</dynamic-field>
+												</div>
+											</li>
+										</ul>
+
+										<ul ng-if="optionLine.optionLines.length">
+											<li ng-repeat="subOptionLine in optionLine.optionLines | filter:locationCart.isLineSelected" class="location-line-col location-option">
+												<div class="fieldtype-wrapper-subOption" ng-show="$first"></div>
+												<ul ng-if="subOptionLine.chargeLines.length" >
+													<li ng-repeat="chargeLine in subOptionLine.chargeLines" >
+														<div class="fieldtype-wrapper fieldtype--{{column.FieldType}}">
+															<dynamic-field model="chargeLine.fieldGetterSetter(column.FieldName)" 
+																		   field-type="{{column.FieldType}}"
+																		   is-editable='false'
+																		   properties="column">
+															</dynamic-field>
+														</div>
+													</li>
+												</ul>                                                
+											</li>
+										</ul>
+									</li>
+								</ul>
+							   
+							</div> 
+						</td>
+					</tr>
 
 
-                </tbody>
-            </table>
-        </div>
-    </div>
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>

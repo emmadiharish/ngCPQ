@@ -22,6 +22,7 @@
 		var isAllItemsValid = false;
 
 		var allItemsList = [];
+		var allPrimaryItemsList = [];
 		var allItemsByPrimaryLineNumber = {};
 		var allItemSOsByPrimaryLineNumber = {};
 		
@@ -38,6 +39,7 @@
 		cache.getLineItem = getLineItem;
 		cache.getLineItemSOsByPrimaryLineNumber = getLineItemSOsByPrimaryLineNumber;
 		cache.getLineItemsByPrimaryLineNumber = getLineItemsByPrimaryLineNumber;
+		cache.getChargePrimaryLines = getChargePrimaryLines;
 		cache.getLineItemDOChanges = getLineItemDOChanges;
 		cache.refreshAllItemsList = refreshAllItemsList;
 		cache.getSize = getSize;
@@ -71,9 +73,10 @@
 		}
 
 		/**
-		 * Return the map of primary SObjects by their primary line number
-		 * includes option lines also.
-		 * @return {map of line items}
+		 * Return the array of items in all states. 
+		 * If called multiple times, this will only have to concat
+		 * 	all the items into a list once.
+		 * @return {array of line items}
 		 */
 		function getLineItemSOsByPrimaryLineNumber() {
 			if (!isAllItemsValid) {
@@ -98,6 +101,20 @@
 			return allItemsList;
 
 		}
+
+		/**
+		 * Return the array of primary lines
+		 * @return {array of line items}
+		 */
+		function getChargePrimaryLines () {
+			if (!isAllItemsValid) {
+				refreshAllItemsList();
+
+			}
+			return allPrimaryItemsList;
+
+		}
+
 		/** Get a line item in the cache by PLN */
 		function getLineItem(primaryLineNumber) {
 			return mainLineItemCollection.getLineItem(primaryLineNumber);
@@ -126,6 +143,7 @@
 		function refreshAllItemsList() {
 			if (!cache.isValid) {
 				allItemsList = [];
+				allPrimaryItemsList = [];
 				allItemsByPrimaryLineNumber = {};
 				allItemSOsByPrimaryLineNumber = {};
 				return allItemsList;
@@ -135,12 +153,16 @@
 			//store items by primary line #
 			(function populatePrimaryLineMap(items) {
 				_.forEach(items, function (chargeLine) {
-					var lineItemSO = chargeLine.lineItemSO();	
-					var primaryLineNumber = chargeLine.primaryLineNumber();
-					allItemSOsByPrimaryLineNumber[primaryLineNumber] = lineItemSO;
-					allItemsByPrimaryLineNumber[primaryLineNumber] = chargeLine;
-					if(chargeLine.optionLines.length) {
-						populatePrimaryLineMap(chargeLine.optionLines);
+					if(chargeLine.isSelected()) {
+						var lineItemSO = chargeLine.lineItemSO();	
+						var primaryLineNumber = chargeLine.primaryLineNumber();
+						allItemSOsByPrimaryLineNumber[primaryLineNumber] = lineItemSO;
+						allItemsByPrimaryLineNumber[primaryLineNumber] = chargeLine;
+						allPrimaryItemsList.push(chargeLine);
+
+						if(chargeLine.optionLines.length) {
+							populatePrimaryLineMap(chargeLine.optionLines);
+						}
 					}
 				});
 			})(allItemsList);

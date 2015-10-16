@@ -50,15 +50,29 @@
 			var allChargeLines = LineItemCache.getLineItemsByPrimaryLineNumber();
 
 			//STEP I - get numeric expressions which need recalculation
-			var expressionsForRecalculation = ExpressionDataService.getExpressionsForRecalculation(sourceId, fieldName);
-			//STEP II - if there are default value rules, we create the applied info representation
+			var expressionsForRecalculation = {};
+			if(angular.isDefined(sourceId) && sourceId !== true && sourceId !== null
+					&& angular.isDefined(fieldName) && fieldName !== null) {
+				expressionsForRecalculation = ExpressionDataService.getExpressionsForRecalculation(sourceId, fieldName);
+			}
+			//STEP II - evaluate all the expressions for target lines also
+			var expressionsForLine = {};
+			if(sourceId === true) {
+				for(primaryLineNumber in allChargeLines) {
+					if(allChargeLines.hasOwnProperty(primaryLineNumber)) {
+						angular.extend(expressionsForLine, ExpressionDataService.getExpressionsForTarget(primaryLineNumber)); 
+					}
+				}				
+			}
+
+			//STEP III - if there are default value rules, we create the applied info representation
 			var defaultValuesToEvaluate = generateAttrDefaultValueExpressionInfos();
-			//STEP - III - including defaults may cause other expressions to need calculations
+			//STEP - IV - including defaults may cause other expressions to need calculations
 			var modifiedByDefaultExpressions = ExpressionDataService.getModifiedByExpression(defaultValuesToEvaluate, allChargeLines);
 		  	//merge collections
-		  	angular.extend(expressionsForRecalculation, defaultValuesToEvaluate, modifiedByDefaultExpressions);
+		  	angular.extend(expressionsForRecalculation, expressionsForLine, defaultValuesToEvaluate, modifiedByDefaultExpressions);
 
-		  	//STEP IV - map out expressions by primary line # and validate
+		  	//STEP V - map out expressions by primary line # and validate
 		  	//that there are no duplicate field updates			
 			var lineItemSObyPriLine = {};
 			var lineItemSOList = [];
@@ -109,7 +123,7 @@
 			    }
 			}
 
-			//STEP IV - perform the calculations
+			//STEP VI - perform the calculations
 			if(needsCalculation) {
 				//config is line "0"
 				lineItemSObyPriLine[0] = service.productConfiguration;				
@@ -166,7 +180,7 @@
 		 * @return the default value expressions for calculation
 		 */
 		function generateAttrDefaultValueExpressionInfos() {			
-			var allChargeLines = LineItemCache.getLineItems();
+			var allChargeLines = LineItemCache.getChargePrimaryLines();
 			var expressionsToEvaluate = {};
 			for(var i = 0, len = allChargeLines.length; i < len; i++) { //check defaults for every line
 				var lineItem = allChargeLines[i];

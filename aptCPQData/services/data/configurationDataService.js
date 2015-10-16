@@ -61,6 +61,8 @@
 			var configurationData;
 			var configurationRequestPromise;
 			var customSettingsPromise = null;
+			var referenceObjectMap = {};
+			var referenceOBjectRequestPromise;
 
 			/** Service constants -- may need to be retrived from custom setting */
 			service.defaultSearchFields = ["Name", "ProductCode", "Family"];
@@ -83,7 +85,6 @@
 				MINI_CART: 'minicart',
 				OPTION_GROUPS: 'optionGroups',
 				OPTION_LINES: 'optionLines',
-				PRICE_RAMPS: 'priceRamps',
 				PRICES: 'prices',
 				PRODUCT_FILTERS: 'productFilters',
 				PRODUCT_INFORMATION: 'productInformation',
@@ -101,11 +102,59 @@
 			service.getCustomSettings = getCustomSettings;
 			service.getDisplayActions = getDisplayActions;
 			service.getDisplayColumns = getDisplayColumns;
+			service.getReferenceObjects = getReferenceObjects;
 			service.getSObjectSummary = getSObjectSummary;
+			service.getReferenceObjects = getReferenceObjects;
 			service.requestBasePromise = requestBase1;
 			service.CartPageUrl = null;
 
 			/* -- Method declarations */
+
+			/**
+			 * Get Reference objects from the backend
+			 * @param - string key to be retrieved
+			 */
+			function getReferenceObjects(refObjKey) {
+				// check through the map to see if it exists
+				if (!angular.isDefined(refObjKey)) {
+					return $q.when(null); // null if no key provided
+				} else if (referenceObjectMap.hasOwnProperty(refObjKey)) {
+					return $q.when(referenceObjectMap[refObjKey]); // return from cache
+				}
+				// } else if (referenceOBjectRequestPromise){
+				// 	return referenceOBjectRequestPromise;
+				// } 
+
+				// fetch missing and return promise
+				var dataPromise = setupReferenceObjectRequest(refObjKey).then(function(reqData){
+					return RemoteService.getReferenceObjects(reqData);
+				});
+
+				referenceOBjectRequestPromise = dataPromise.then(function(result){
+					if( result.hasOwnProperty('referenceObjects') &&
+							result.referenceObjects.hasOwnProperty(refObjKey)) {
+						referenceObjectMap[refObjKey] = result.referenceObjects[refObjKey];
+						return referenceObjectMap[refObjKey];
+					} else {
+						return null;
+					}
+				});
+
+				return referenceOBjectRequestPromise;
+			}
+
+			/**
+			 * setup requestDO to obtain reference objects
+			 */
+			function setupReferenceObjectRequest(refObjKey) {
+				return service.requestBasePromise.then(function(requestBase){
+					var reqBody = {};
+					reqBody.cartId = requestBase.cartId;
+					reqBody.sObjectNames = [refObjKey];
+
+					return reqBody;
+				});
+			}
 
 			/**
 			 * Make a call to get all configuration data from server. For now, uses
@@ -123,7 +172,8 @@
 				var includes = [
 				                'customSettings',
 				                'displayActions',
-				                'displayColumns'
+				                'displayColumns',
+				                'referenceObjects'
 				                ];
 
 				//var dataRequest = createCatalogRequestDO(null, null, null, includes, null);

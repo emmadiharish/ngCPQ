@@ -1,7 +1,17 @@
 <!-- fieldType: MULTISELECT -->
-<ui-select multiple ng-model="dynamicField.selected" theme="select2" ng-disabled="dynamicField.IsDisabled || !dynamicField.IsEditable" append-to-body="true" close-on-select="false" style="width:100%;margin-bottom:1px;">
-    <ui-select-match placeholder="--{{dynamicField.labels.None}}--" allow-clear="true">{{$item.label}}</ui-select-match>
-    <ui-select-choices repeat="entry.value as entry in dynamicField.entries | filter : $select.search" ui-disable-choice="entry.disable">
+<ui-select multiple 
+					 ng-model="dynamicField.selected"
+					 theme="select2"
+					 ng-disabled="dynamicField.IsDisabled || !dynamicField.IsEditable"
+					 append-to-body="true"
+					 close-on-select="false"
+					 class="field--multi-picklist">
+    <ui-select-match placeholder="--{{dynamicField.labels.None}}--"
+										 allow-clear="true">
+			{{$item.label}}
+		</ui-select-match>
+    <ui-select-choices repeat="entry.value as entry in dynamicField.entries | filter : $select.search"
+											 ui-disable-choice="entry.disable">
       <div ng-bind-html="trustAsHtml((entry.label | highlight: $select.search))"></div>
     </ui-select-choices>
 </ui-select>

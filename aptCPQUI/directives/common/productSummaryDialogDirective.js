@@ -10,15 +10,22 @@
 
 	function ProductSummaryDialog(systemConstants) {
 
+		function findAncentor(el, cls){
+			while((el = el.parentElement) && !el.classList.contains(cls));
+			return el;
+		}
+
 		function productSummaryLink(scope, elem, attrs, ctrl) {
-			var clickOutside = document.querySelector('html');
+			var clickOutside = document.querySelector('body');
 
 			clickOutside.addEventListener('click', function(e) {
-				// e.stopPropagation();
-				ctrl.close();
-				scope.$apply();
+				var targetElement = findAncentor(e.target, 'product-dialog');
+				if(ctrl.visible && !targetElement) { //limit digestion to only dialog is visible
+					ctrl.close();
+					//calling $digest vs $apply...we only need to update local scope
+					scope.$digest();
+				}
 			});
-
 		}
 
 		return {

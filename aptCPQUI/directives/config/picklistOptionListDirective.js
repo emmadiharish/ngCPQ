@@ -1,18 +1,20 @@
 (function() {
 	angular.module('aptCPQUI')
 		.directive('picklistOptionList', PicklistOptionList);
-	
+
 	PicklistOptionList.$inject = ['systemConstants', '$compile'];
 
 	PicklistOptionListCtrl.$inject = [
 		'$q',
 		'systemConstants',
+		'aptBase.i18nService',
 		'ConfigureService'
 	];
 
-	function PicklistOptionListCtrl($q, systemConstants, ConfigureService) {
+	function PicklistOptionListCtrl($q, systemConstants, i18nService, ConfigureService) {
 		var picklistCtrl = this;
 		var nsPrefix = systemConstants.nsPrefix;
+		picklistCtrl.labels = i18nService.CustomLabel;
 
 		picklistCtrl.hasChildren = function() {
 			var selectedLine = picklistCtrl.selected.lineItem;
@@ -39,18 +41,42 @@
 			return '';
 
 		};
-		
+		picklistCtrl.isOptionDisplayed = function(option, searchText) {
+			var hideDisabled = ConfigureService.pageSettings.HideDisabledOptions;
+			if (hideDisabled === false) {
+				return true;
+
+			}
+			if (!option || option.isSelected()) {
+				return true;
+
+			}
+			var optionId = option.optionField('Id');
+			return ConfigureService.excludedOptionIds[optionId] !== true;
+
+		};	
+		picklistCtrl.isOptionDisabled = function(option) {
+			var optionId = option.optionComponent[nsPrefix + 'ComponentProductId__c'];
+			return ConfigureService.excludedOptionIds[optionId] === true;
+
+		};	
 		picklistCtrl.selectOption = function(option) {
 			//Check to make sure option is defined.
 			if (!option) {
+				picklistCtrl.selectNone();
 				return option;
 
 			}
 			return option.toggleSelected().then(function() {
-				picklistCtrl.selected = option; //with ng-model this should be unncecessary
+				// picklistCtrl.selected = option; //with ng-model this should be unncecessary
 				ConfigureService.updateBundle();
 				return option;
 			});
+		};
+		picklistCtrl.selectNone = function() {
+			if (picklistCtrl.group.selectNone()) {
+				ConfigureService.updateBundle();
+			}
 		};
 		function init() {
 			var optionWrappers = picklistCtrl.group.options;

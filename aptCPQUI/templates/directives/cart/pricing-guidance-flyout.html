@@ -1,0 +1,65 @@
+<div ng-show="pricingGuidance.visible" class="pricing-guidance-flyout">
+		<div class="modal-header arrow_box">
+				<h3>{{pricingGuidance.labels.PricingGuidance}}</h3>
+				<span class="modal-header__close-modal" ng-click="pricingGuidance.close()"></span>
+		</div>
+		<div class="modal-content">
+				<div class="modal-content__modal-row-container">
+						<div class="dimension-details">
+								<h1 class="guidance-title">{{pricingGuidance.labels.GuidanceParameters}}</h1>
+								<div class="dimension-info" ng-repeat="label in pricingGuidance.getDimensionLabels() track by $index">
+										{{label}} : {{pricingGuidance.selectedGuidance.DimensionValues[$index]}}
+								</div>
+						</div>
+						<table class="pricingGuidanceTable" width="100%" cellpadding="2px" cellspacing="2px">
+								<thead>
+										<tr>
+											<td width="20%"></td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePercentile" width="20%" class="percentFromHeading">
+												{{pricingGuidance.labels.PercentFrom}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePercentile" width="20%" class="percentToHeading">
+												{{pricingGuidance.labels.PercentTo}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePrice" width="20%" class="priceFromHeading">
+												{{pricingGuidance.labels.PriceFrom}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePrice" width="20%" class="priceToHeading">
+												{{pricingGuidance.labels.PriceTo}}
+											</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr ng-repeat="entry in pricingGuidance.selectedGuidance.Entries" id="{{entry.Sequence}}" class="{{pricingGuidance.getItemRatingCSSClass(entry)}}">
+											<td class="rating-container">
+												<div class="guidance-toggle guidance-stop-light {{pricingGuidance.getRatingCSSClass(entry.Rating)}} {{pricingGuidance.properties.StyleClass}}" 
+														 role="button" 
+														 style="{{pricingGuidance.properties.Style}}">
+												 			 &nbsp;
+												</div>
+												{{entry.RangeName}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePercentile && pricingGuidance.isPriceFromAboveMeasures(entry)" colspan="2">
+												{{entry.PercentileTo}} {{pricingGuidance.labels.PricingGuidanceMaxLabel}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePercentile && !pricingGuidance.isPriceFromAboveMeasures(entry)">
+												{{entry.PercentileFrom}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePercentile && !pricingGuidance.isPriceFromAboveMeasures(entry)">
+												{{entry.PercentileTo}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePrice && pricingGuidance.isPriceFromAboveMeasures(entry)" colspan="2">
+												{{entry.PriceTo}} {{pricingGuidance.labels.PricingGuidanceMaxLabel}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePrice && !pricingGuidance.isPriceFromAboveMeasures(entry)">
+												{{entry.PriceFrom}}
+											</td>
+											<td ng-if="!pricingGuidance.selectedGuidance.HidePrice && !pricingGuidance.isPriceFromAboveMeasures(entry)">
+												{{entry.PriceTo}}
+											</td>
+										</tr>
+								</tbody>
+						</table>
+				</div>
+		</div>
+</div>

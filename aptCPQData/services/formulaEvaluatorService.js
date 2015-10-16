@@ -307,23 +307,37 @@
 				params = [],
 				unclosedParams = 0,
 				curChar,
-				len = input.length;
+				len = input.length,
+				inQuote = false,
+				quoteChar = [];
 			while(curPos < len) {
 				curChar = input[curPos];
 				if (curChar === '(' 
 						|| curChar === '{'
-						|| curChar === '[') {
+						|| curChar === '['
+						|| (inQuote === false && (curChar === '"' || curChar === "'") )) {
 					unclosedParams++;
 					curPos++;
+					//push quote character to stack
+					if(curChar === '"' || curChar === "'") {
+						quoteChar.push(curChar);
+						inQuote = true;
+
+					}
 				} else if(curChar === ')' 
 						|| curChar === '}'
-						|| curChar === ']') {
+						|| curChar === ']'
+						|| (inQuote === true && quoteChar.length && curChar === quoteChar[quoteChar.length -1])) {
 					unclosedParams--;
 					if (unclosedParams == -1) {
 						input = input.substring(0, curPos);
 						break;
 					}
-					curPos++;
+					curPos++;					
+					if(inQuote === true && quoteChar.length && curChar === quoteChar[quoteChar.length -1]) {
+						quoteChar = quoteChar.slice(0, -1);
+						inQuote = quoteChar.length > 0;
+					}
 				} else if (curChar === ',' && unclosedParams == 0) {
 					params.push(input.substring(0,curPos));
 					input = input.substring(curPos + 1);

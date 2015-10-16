@@ -29,7 +29,7 @@
       </div>
       <div class="button-row" ng-show="productList.isProductSelected()">
         <span class="selected-num">{{productList.selectedProductsCount}} {{productList.labels.Selected}}</span>
-        <button id="addToCart" ng-click="productList.addSelectedToCart()" class="tertiary">
+        <button id="addToCart" ng-click="productList.addSelectedToCart()" class="tertiary" ng-show="productList.selectedProductsCount > 0 && productList.selectedSoldProductsCount == 0">
           <span>{{productList.labels.AddToCart}}</span>
         </button>
         <button ng-click="productList.compareSelected()" class="tertiary">

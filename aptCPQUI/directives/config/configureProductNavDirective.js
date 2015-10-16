@@ -30,6 +30,31 @@
 		var showTabView = !!systemConstants.customSettings.optionsPageSettings.TabViewInConfigureBundle;
 
 		ctrl.labels = i18nService.CustomLabel;
+
+		//initialize the option groups
+		ConfigureService.getOptionGroups().then(function(result) {
+			ctrl.topOptionGroups = [];
+			var firstGroup;
+			angular.forEach(result, function(optionGroup, key) {
+				if (optionGroup.isHidden == false) {
+					ctrl.topOptionGroups.push(optionGroup);
+				
+					if (angular.isUndefined(firstGroup)) {
+						firstGroup = optionGroup;
+						
+					} else {
+						optionGroup.isActive = false;
+						
+					}
+					
+				}
+			});
+			
+			if (firstGroup) {
+				ctrl.showGroup(firstGroup); //first option group active by default
+			}
+		});
+
 		
 		ctrl.showAttributesTab = function() {
 			return ConfigureService.lineItem.hasAttrs() && showTabView == false;
@@ -61,34 +86,6 @@
 			ConfigureService.lastActiveGroup = optionGroup;
 			ConfigureService.activeOptionGroup = optionGroup; 
 		};
-		
-		ctrl.getTopOptionGroups = function() {
-			if (ctrl.optionGroups) {
-				return ctrl.optionGroups;
-				
-			} else {
-				return ConfigureService.getOptionGroups().then(function(result) {
-					ctrl.optionGroups = result;
-					var firstGroup;
-					angular.forEach(ctrl.optionGroups, function(optionGroup, key) {
-						if (angular.isUndefined(firstGroup) && optionGroup.isHidden == false) {
-							firstGroup = optionGroup;
-							
-						} else {
-							optionGroup.isActive = false;
-							
-						}
-					});
-					
-					if (firstGroup) {
-						ctrl.showGroup(firstGroup); //first option group active by default
-					}
-					
-					return ctrl.optionGroups;
-				});
-				
-			}
-		}
 		
 		return ctrl;
 		

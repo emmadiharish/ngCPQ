@@ -19,7 +19,8 @@
 		'OptionDataService',
 		'PageErrorDataService',
 		'AttributesCache',
-		'FieldExpressionCache'
+		'FieldExpressionCache',
+		'AppliedExpressionService'
 	];
 
 	function CartDataService($http, 
@@ -37,7 +38,8 @@
 							 OptionDataService, 
 							 PageErrorDataService, 
 							 AttributesCache,
-							 FieldExpressionCache) {
+							 FieldExpressionCache,
+							 RuleService) {
 		var service = this;
 		/** Init private service variables */
 		var nsPrefix = systemConstants.nsPrefix;
@@ -52,7 +54,7 @@
 		var cartTotalsPromise;
 
 		var cartLocations;
-		var cartLocationsPromise;
+		var cartLocationsPromise;		
 
 		service.locationLineItems = {};
 		service.lineItemsWithoutLocation = [];
@@ -75,6 +77,7 @@
 		service.getCartTotalLines = getCartTotalLines;
 		service.getCartTotalSummaryColumns = getCartTotalSummaryColumns;
 		service.getDisplayActions = getDisplayActions;
+		service.getReferenceObjects = getReferenceObjects;
 		service.getExcludedOptionIds = getExcludedOptionIds;
 		service.getLineItem = getLineItem;
 		service.getLineItemDetails = getLineItemDetails;
@@ -475,6 +478,13 @@
 		}
 
 		/**
+		 * Get list of reference objects to Display
+		 */
+		function getReferenceObjects() {
+			return ConfigurationDataService.getReferenceObjects();
+		}
+
+		/**
 		 * Add one or more products to the cart and return the new line items.
 		 * A product wrapper just needs the properties "productSO" and "quantity",
 		 * 	which is made to fit with how products are wrapped by the category directive.
@@ -732,7 +742,7 @@
 			 * For now, just pass the rejected promise up.
 			 */
 			function onRejection(reason) {
-				PageErrorDataService.add([reason]);
+				PageErrorDataService.add(reason);
 				return $q.reject(reason);
 
 			}
@@ -774,7 +784,10 @@
 							//!--uses info from various caches to init the line item model
 							LineItemCache.putLineItemDOs(result.lineItems, createLineItemModel); 
 							LineItemCache.removeLineItems(result.deletedPrimaryLineNumbers, true);
-
+							//apply expression change rules
+							if(result.attributeRules || result.appliedExpressionInfos) {
+								RuleService.applyRulesOnChange(true);
+							}
 							return refreshItemsFromCache();
 
 						}, 
@@ -844,8 +857,8 @@
 							updateTotalItemArray(totalsData);
 							LineItemCache.putLineItemDOs(lineItemData, createLineItemModel);
 							PageErrorDataService.add(result.pageErrors.errorMessages);
-							LineItemCache.putPricePendingInfo(result.pricePendingInfo);
-							return finish();
+							LineItemCache.putPricePendingInfo(result.pricePendingInfo);							
+							return finish(!result.pricePendingInfo);
 
 						}, 
 						onRejection
@@ -861,9 +874,9 @@
 			 * 	
 			 * @return {Promise} resolves with cart lines when pricing is done.
 			 */
-			function finish() {
+			function finish(faliedToReprice) {
 				refreshItemsFromCache();
-				if (LineItemCache.getIsPricePending()) {
+				if (faliedToReprice !== true && LineItemCache.getIsPricePending()) { //failed to reprice, only do again on user 'reprice' action
 					return reprice();
 
 				}

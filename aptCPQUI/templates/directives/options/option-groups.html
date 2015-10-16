@@ -21,7 +21,7 @@
 	<!-- Loop over top-level groups -->
 	<span ng-repeat="group in groupsCtrl.lineItem.optionGroups"
 		  class="main-configure-product__group-repeat">
-		<div ng-if="group.isActive()"
+		<div ng-if="group.isActive() && !group.isHidden()"
 				 ng-include="'groupContent'"
 				 ng-class="{'is--open': group.groupInfo.isExpanded}"
 				 class="main-configure-product__product-option">
@@ -32,7 +32,7 @@
 <!-- Recursive templating for displaying sub groups in ng-repeat -->
 <script type="text/ng-template" id="groupContent">
 	<!-- Large label for top-level groups -->
-	<h3 ng-if="!group.isTopLevel()" 
+	<h3 ng-if="!groupsCtrl.lineItem.isTopLevel() || !groupsCtrl.showTabView" 
 			toggle-class="is--open"
 			parent="main-configure-product__product-option"
 			class="product-option__title"
@@ -47,16 +47,10 @@
 	<ul class="product-option__title-messages">
 		<li ng-repeat="message in group.getConfigurationMessages()">{{message}}</li>
 	</ul>
-	<!-- Smaller label -->
-	<label ng-if="!group.lineItem.isTopLevel()"
-				 class="nested-option-configuration__title">
-		{{group.groupInfo.label}} 
-	</label>
-
+	
 	<!-- Display list of options if this is a leaf group -->
 	<div class="option-content" ng-if="group.isLeaf() && group.isContentTypeOptions()">
-		<div ng-if="group.isTopLevel()"
-				class="product-option__label-row" >
+		<div class="product-option__label-row" >
 			<label class="product-option__name">{{groupsCtrl.labels.OptionColumn}}</label> 
 			<label class="product-option__code">{{groupsCtrl.customSettings.optionsPageSettings.ExtraOptionProductColumn1Label}}</label>
 			<label class="product-option__family">{{groupsCtrl.customSettings.optionsPageSettings.ExtraOptionProductColumn2Label}}</label> 
@@ -76,12 +70,11 @@
 	</div>
 
 	<div class="option-content" ng-if="group.isLeaf() && group.isContentTypeDetailPage()">
-		<iframe ng-src="{{groupsCtrl.getPageUrl(group)}}" height="500px" width="100%"
-			min-height="100%"></iframe>
+		<iframe ng-src="{{groupsCtrl.getPageUrl(group)}}" class="option-content-iframe {{group.groupInfo.groupName}}-iframe"></iframe>
 	</div>
 
 	<!-- Recursively include template if this group has sub groups -->
-	<div class="sub-group" ng-if="!group.isLeaf()">
+	<div class="sub-group" ng-if="!group.isLeaf() && !group.isHidden()">
 		<span ng-repeat="group in group.childGroups"
 					class="main-configure-product__group-repeat">
 			<div ng-include="'groupContent'"
